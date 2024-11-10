@@ -1,0 +1,14 @@
+# Ignore temp files
+*~
+*.swp
+
+# Ignore generated prompts
+*.lcp
+
+# Ignore python cache files
+**/__pycache__
+
+# Ignore code coverage reports
+.coverage
+htmlcol
+.pytest_cache
