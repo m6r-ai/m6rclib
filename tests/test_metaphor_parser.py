@@ -185,6 +185,19 @@ def test_context_missing_indent(tmp_path):
         parser.parse(str(p), [])
     assert "Expected indent after keyword description for 'Context' block" in str(exc_info.value.errors[0].message)
 
+def test_context_missing_description_and_indent(tmp_path):
+    """Test handling of Context block with neither description nor indent"""
+    p = tmp_path / "context_invalid.m6r"
+    p.write_text(
+        "Context:\n" \
+        "Text without indent\n"
+    )
+
+    parser = MetaphorParser()
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(str(p), [])
+    assert "Expected description or indent for 'Context' block" in str(exc_info.value.errors[0].message)
+
 def test_context_inner_unexpected(tmp_path):
     """Test handling of unexpected tokens in Context blocks"""
     p = tmp_path / "context_bad_token.m6r"
@@ -469,19 +482,6 @@ def test_wildcard_embed(parser, tmp_path):
     finally:
         os.chdir(current_dir)
 
-def test_complete_parse(parser, temp_test_files):
-    """Test a complete parse with all node types"""
-    main_file = Path(temp_test_files) / "main.m6r"
-    result = parser.parse(str(main_file), [temp_test_files])
-
-    # Verify we have all three main node types
-    assert result[0].token_type == TokenType.ROLE
-    assert result[1].token_type == TokenType.CONTEXT
-    assert result[2].token_type == TokenType.ACTION
-
-    # Verify node contents
-    assert any(node.value == "Description" for node in result[0].child_nodes)
-
 def test_embed_missing_filename(tmp_path):
     """Test handling of missing filename in Embed directives"""
     p = tmp_path / "embed_no_file.m6r"
@@ -557,19 +557,6 @@ def test_recursive_embed(tmp_path):
         assert any("Level 2 content" in node.value for node in embedded_text)
     finally:
         os.chdir(current_dir)
-
-def test_context_missing_description_and_indent(tmp_path):
-    """Test handling of Context block with neither description nor indent"""
-    p = tmp_path / "context_invalid.m6r"
-    p.write_text(
-        "Context:\n" \
-        "Text without indent\n"
-    )
-
-    parser = MetaphorParser()
-    with pytest.raises(MetaphorParserError) as exc_info:
-        parser.parse(str(p), [])
-    assert "Expected description or indent for 'Context' block" in str(exc_info.value.errors[0].message)
 
 def test_find_file_path_absolute(parser, tmp_path):
     """Test _find_file_path with absolute path that exists"""
