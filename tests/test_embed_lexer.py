@@ -67,6 +67,25 @@ def test_embed_lexer_js():
     assert tokens[3].value == "```"
     assert tokens[4].type == TokenType.END_OF_FILE
 
+def test_embed_lexer_foo_js():
+    """Test the EmbedLexer's token generation"""
+    input_text = "Test content"
+    lexer = EmbedLexer(input_text, "test.foo.js")
+
+    tokens = []
+    while True:
+        token = lexer.get_next_token()
+        tokens.append(token)
+        if token.type == TokenType.END_OF_FILE:
+            break
+
+    assert len(tokens) == 5
+    assert tokens[0].value == "File: test.foo.js"
+    assert tokens[1].value == "```javascript"
+    assert tokens[2].value == "Test content"
+    assert tokens[3].value == "```"
+    assert tokens[4].type == TokenType.END_OF_FILE
+
 def test_embed_lexer_m6r():
     """Test the EmbedLexer's token generation"""
     input_text = "Test content"
