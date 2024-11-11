@@ -24,21 +24,41 @@ def temp_test_files(tmp_path):
 
     # Create main file
     main = d / "main.m6r"
-    main.write_text("""Role: Test
-    Description
-
-Context: TestContext
-    Some context
-
-Action: TestAction
-    Do something""")
+    main.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "\n" \
+        "Context: TestContext\n" \
+        "    Some context\n" \
+        "\n" \
+        "Action: TestAction\n" \
+        "    Do something\n"
+    )
 
     # Create include file
     include = d / "include.m6r"
-    include.write_text("""Context: Include
-    Included content""")
+    include.write_text(
+        "Context: Include\n" \
+        "    Included content\n"
+    )
 
     return str(d)
+
+@pytest.fixture
+def create_read_only_file(tmp_path):
+    """Create a read-only file for testing permission errors"""
+    p = tmp_path / "readonly.m6r"
+    p.write_text(
+        "Role: Test\n" \
+        "    Description\n"
+    )
+
+    # Remove read permissions
+    os.chmod(p, stat.S_IWRITE)
+    yield p
+
+    # Restore permissions for cleanup
+    os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
 
 def test_basic_parsing(parser, temp_test_files):
     """Test basic parsing of a valid file"""
@@ -59,10 +79,12 @@ def test_file_not_found(parser):
 def test_duplicate_action_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
-    p.write_text("""Action: Test1
-    Description
-Action: Test2
-    Description""")
+    p.write_text(
+        "Action: Test1\n" \
+        "    Description\n" \
+        "Action: Test2\n" \
+        "    Description\n"
+    )
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
@@ -71,10 +93,12 @@ Action: Test2
 def test_duplicate_context_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
-    p.write_text("""Context: Test1
-    Description
-Context: Test2
-    Description""")
+    p.write_text(
+        "Context: Test1\n" \
+        "    Description\n" \
+        "Context: Test2\n" \
+        "    Description\n"
+    )
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
@@ -83,10 +107,12 @@ Context: Test2
 def test_duplicate_role_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
-    p.write_text("""Role: Test1
-    Description
-Role: Test2
-    Description""")
+    p.write_text(
+        "Role: Test1\n" \
+        "    Description\n" \
+        "Role: Test2\n" \
+        "    Description\n"
+    )
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
@@ -95,8 +121,10 @@ Role: Test2
 def test_invalid_structure(parser, tmp_path):
     """Test handling of invalid document structure"""
     p = tmp_path / "invalid.m6r"
-    p.write_text("""InvalidKeyword: Test
-    Description""")
+    p.write_text(
+        "InvalidKeyword: Test\n" \
+        "    Description\n"
+    )
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
@@ -108,12 +136,16 @@ def test_include_directive(parser, tmp_path):
     main_file = tmp_path / "main.m6r"
     include_file = tmp_path / "include.m6r"
 
-    main_file.write_text("""Role: Test
-    Description
-Include: include.m6r""")
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "Include: include.m6r\n"
+    )
 
-    include_file.write_text("""Context: Included
-    Content""")
+    include_file.write_text(
+        "Context: Included\n" \
+        "    Content\n"
+    )
 
     result = parser.parse(str(main_file), [str(tmp_path)])
     assert result[0].token_type == TokenType.ROLE
@@ -124,12 +156,14 @@ Include: include.m6r""")
 def test_embed_directive(parser, tmp_path):
     """Test handling of Embed directive"""
     main_file = tmp_path / "main.m6r"
-    # Embeds need to be within a Context block
-    main_file.write_text("""Role: Test
-    Description
-Context: Files
-    Context text
-    Embed: test.txt""")  # Embed within Context, indented
+    # Embed needs to be within a Context block
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "Context: Files\n" \
+        "    Context text\n" \
+        "    Embed: test.txt\n"
+    )
 
     # Create embed file
     embed_file = tmp_path / "test.txt"
@@ -157,13 +191,17 @@ def test_recursive_includes(parser, tmp_path):
     file2 = tmp_path / "file2.m6r"
 
     # No indent on Include directives
-    file1.write_text("""Role: Test1
-    Description
-Include: file2.m6r""")
+    file1.write_text(
+        "Role: Test1\n" \
+        "    Description\n" \
+        "Include: file2.m6r\n"
+    )
 
-    file2.write_text("""Context: Test2
-    Description
-Include: file1.m6r""")
+    file2.write_text(
+        "Context: Test2\n" \
+        "    Description\n" \
+        "Include: file1.m6r\n"
+    )
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(file1), [str(tmp_path)])
@@ -179,12 +217,16 @@ def test_search_paths(parser, tmp_path):
     main_file = tmp_path / "main.m6r"
     include_file = include_dir / "included.m6r"
 
-    main_file.write_text("""Role: Test
-    Description
-Include: included.m6r""")
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "Include: included.m6r\n"
+    )
 
-    include_file.write_text("""Context: Included
-    Content""")
+    include_file.write_text(
+        "Context: Included\n" \
+        "    Content\n"
+    )
 
     result = parser.parse(str(main_file), [str(include_dir)])
     assert result[0].token_type == TokenType.ROLE
@@ -198,11 +240,13 @@ def test_wildcard_embed(parser, tmp_path):
 
     main_file = tmp_path / "main.m6r"
     # Embed within Context block
-    main_file.write_text("""Role: Test
-    Description
-Context: Files
-    Context text
-    Embed: test*.txt""")
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "Context: Files\n" \
+        "    Context text\n" \
+        "    Embed: test*.txt\n"
+    )
 
     current_dir = os.getcwd()
     os.chdir(tmp_path)
@@ -240,8 +284,10 @@ def test_complete_parse(parser, temp_test_files):
 def test_missing_indent_after_keyword(parser, tmp_path):
     """Test handling of missing indent after keyword text"""
     p = tmp_path / "missing_indent.m6r"
-    p.write_text("""Role: Test
-No indent here""")
+    p.write_text(
+        "Role: Test\n" \
+        "No indent here\n"
+    )
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
@@ -250,24 +296,12 @@ No indent here""")
 def test_action_unexpected_token(tmp_path):
     """Test handling of unexpected tokens in Action blocks"""
     p = tmp_path / "action_bad_token.m6r"
-    p.write_text("""Action: DoSomething
-    First text
-    Context: Invalid
-        This shouldn't be here""")
-
-    parser = MetaphorParser()
-    with pytest.raises(MetaphorParserError) as exc_info:
-        parser.parse(str(p), [])
-    assert "Unexpected token: Context: in 'Action' block" in str(exc_info.value.errors[0].message)
-
-def test_action_invalid_content(tmp_path):
-    """Test handling of invalid content in Action blocks"""
-    p = tmp_path / "action_invalid.m6r"
-    # Test that only text tokens are allowed in Action blocks
-    p.write_text("""Action: DoSomething
-    First Text Block
-    Context: Invalid
-        This shouldn't be here""")
+    p.write_text(
+        "Action: DoSomething\n" \
+        "    First text\n" \
+        "    Context: Invalid\n" \
+        "        This shouldn't be here\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -277,10 +311,14 @@ def test_action_invalid_content(tmp_path):
 def test_action_bad_outdent(tmp_path):
     """Test handling of incorrect indentation in Action blocks"""
     p = tmp_path / "action_bad_outdent.m6r"
-    p.write_text("""Action: DoSomething
-    First line correct
-   Bad outdent level
-    Back to correct""")  # 4, 3, 4 spaces
+
+    # 4, 3, 4 spaces.
+    p.write_text(
+        "Action: DoSomething\n" \
+        "    First line correct\n" \
+        "   Bad outdent level\n" \
+        "    Back to correct\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -290,10 +328,12 @@ def test_action_bad_outdent(tmp_path):
 def test_context_inner_unexpected(tmp_path):
     """Test handling of unexpected tokens in Context blocks"""
     p = tmp_path / "context_bad_token.m6r"
-    p.write_text("""Context: TestContext
-    First text
-    Action: Invalid
-        This shouldn't be here""")
+    p.write_text(
+        "Context: TestContext\n" \
+        "    First text\n" \
+        "    Action: Invalid\n" \
+        "        This shouldn't be here\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -303,11 +343,13 @@ def test_context_inner_unexpected(tmp_path):
 def test_context_late_text(tmp_path):
     """Test handling of text after inner Context in Context blocks"""
     p = tmp_path / "context_late_text.m6r"
-    p.write_text("""Context: TestContext
-    First text
-    Context: Inner
-        Inner content
-    Late text is wrong here""")
+    p.write_text(
+        "Context: TestContext\n" \
+        "    First text\n" \
+        "    Context: Inner\n" \
+        "        Inner content\n" \
+        "    Late text is wrong here\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -317,10 +359,12 @@ def test_context_late_text(tmp_path):
 def test_role_unexpected_token(tmp_path):
     """Test handling of unexpected tokens in Role blocks"""
     p = tmp_path / "role_bad_token.m6r"
-    p.write_text("""Role: TestRole
-    First text
-    Action: Invalid
-        This shouldn't be here""")
+    p.write_text(
+        "Role: TestRole\n" \
+        "    First text\n" \
+        "    Action: Invalid\n" \
+        "        This shouldn't be here\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -330,8 +374,10 @@ def test_role_unexpected_token(tmp_path):
 def test_role_missing_indent(tmp_path):
     """Test handling of missing indentation in Role blocks"""
     p = tmp_path / "role_no_indent.m6r"
-    p.write_text("""Role: TestRole
-No indent here""")
+    p.write_text(
+        "Role: TestRole\n" \
+        "No indent here\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -341,8 +387,10 @@ No indent here""")
 def test_context_missing_indent(tmp_path):
     """Test handling of missing indentation in Context blocks"""
     p = tmp_path / "context_no_indent.m6r"
-    p.write_text("""Context: TestContext
-No indent here""")
+    p.write_text(
+        "Context: TestContext\n" \
+        "No indent here\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -352,8 +400,10 @@ No indent here""")
 def test_action_missing_indent(tmp_path):
     """Test handling of missing indentation in Action blocks"""
     p = tmp_path / "action_no_indent.m6r"
-    p.write_text("""Action: DoSomething
-No indent here""")
+    p.write_text(
+        "Action: DoSomething\n" \
+        "No indent here"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -363,9 +413,11 @@ No indent here""")
 def test_include_missing_filename(tmp_path):
     """Test handling of missing filename in Include directives"""
     p = tmp_path / "include_no_file.m6r"
-    p.write_text("""Role: Test
-    First text
-    Include:""")
+    p.write_text(
+        "Role: Test\n" \
+        "    First text\n" \
+        "    Include:\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -375,9 +427,11 @@ def test_include_missing_filename(tmp_path):
 def test_embed_missing_filename(tmp_path):
     """Test handling of missing filename in Embed directives"""
     p = tmp_path / "embed_no_file.m6r"
-    p.write_text("""Context: Test
-    First text
-    Embed:""")
+    p.write_text(
+        "Context: Test\n" \
+        "    First text\n" \
+        "    Embed:\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -387,26 +441,16 @@ def test_embed_missing_filename(tmp_path):
 def test_embed_no_matches(tmp_path):
     """Test handling of no matching files for Embed directives"""
     p = tmp_path / "embed_no_matches.m6r"
-    p.write_text("""Context: Test
-    First text
-    Embed: nonexistent*.txt""")
+    p.write_text(
+        "Context: Test\n" \
+        "    First text\n" \
+        "    Embed: nonexistent*.txt\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
     assert "nonexistent*.txt does not match any files for 'Embed'" in str(exc_info.value.errors[0].message)
-
-@pytest.fixture
-def create_read_only_file(tmp_path):
-    """Create a read-only file for testing permission errors"""
-    p = tmp_path / "readonly.m6r"
-    p.write_text("""Role: Test
-    Description""")
-    # Remove read permissions
-    os.chmod(p, stat.S_IWRITE)
-    yield p
-    # Restore permissions for cleanup
-    os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
 
 def test_file_permission_error(create_read_only_file):
     """Test handling of permission errors when reading files"""
@@ -451,12 +495,16 @@ def test_recursive_embed(tmp_path):
     (subsubdir / "level2.txt").write_text("Level 2 content")
 
     main_file = tmp_path / "main.m6r"
-    # Use **/ pattern to recursively match files, with proper 4-space indentation
-    main_file.write_text("""Role: Test
-    Description
-Context: Files
-    Context text
-    Embed: ./**/*.txt""")  # Note the ./ prefix to ensure we look in current directory
+
+    # Use **/ pattern to recursively match files, with proper 4-space indentation.
+    # Note the ./ prefix to ensure we look in current directory.
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "Context: Files\n" \
+        "    Context text\n" \
+        "    Embed: ./**/*.txt\n"
+    )
 
     current_dir = os.getcwd()
     os.chdir(tmp_path)
@@ -484,8 +532,10 @@ Context: Files
 def test_action_missing_description_and_indent(tmp_path):
     """Test handling of Action block with neither description nor indent"""
     p = tmp_path / "action_invalid.m6r"
-    p.write_text("""Action:
-Text without indent""")
+    p.write_text(
+        "Action:\n" \
+        "Text without indent\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -495,8 +545,10 @@ Text without indent""")
 def test_context_missing_description_and_indent(tmp_path):
     """Test handling of Context block with neither description nor indent"""
     p = tmp_path / "context_invalid.m6r"
-    p.write_text("""Context:
-Text without indent""")
+    p.write_text(
+        "Context:\n" \
+        "Text without indent\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -506,8 +558,10 @@ Text without indent""")
 def test_role_missing_description_and_indent(tmp_path):
     """Test handling of Role block with neither description nor indent"""
     p = tmp_path / "role_invalid.m6r"
-    p.write_text("""Role:
-Text without indent""")
+    p.write_text(
+        "Role:\n" \
+        "Text without indent\n"
+    )
 
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
@@ -538,9 +592,11 @@ def test_parse_file_not_found_with_token(parser, tmp_path):
     """Test parse() error handling with existing token context"""
     # Create a main file that includes a non-existent file
     main_file = tmp_path / "main.m6r"
-    main_file.write_text("""Role: Test
-    Description
-    Include: nonexistent.m6r""")
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "    Include: nonexistent.m6r\n"
+    )
 
     # This should trigger the error handling with a current_token
     with pytest.raises(MetaphorParserError) as exc_info:

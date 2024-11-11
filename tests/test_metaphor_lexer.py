@@ -9,14 +9,15 @@ def empty_lexer():
 
 @pytest.fixture
 def basic_lexer():
-    input_text = """Role: TestRole
-    This is a test role description
-Context: TestContext
-    This is a test context
-    Context: Nested
-        This is nested
-Action: TestAction
-    Do something"""
+    input_text = \
+        "Role: TestRole\n" \
+        "    This is a test role description\n" \
+        "Context: TestContext\n" \
+        "    This is a test context\n" \
+        "    Context: Nested\n" \
+        "        This is nested\n" \
+        "Action: TestAction\n" \
+        "    Do something\n"
     return MetaphorLexer(input_text, "test.txt")
 
 def test_lexer_initialization(empty_lexer):
@@ -64,11 +65,12 @@ def test_keyword_detection(basic_lexer):
 
 def test_indentation_handling():
     """Test handling of indentation"""
-    # Using raw string to be exact about spacing
-    input_text = """Role: Test
-    First block
-    Still first block
-    Back at first"""  # All at same indentation level
+    # All at same indentation level
+    input_text = \
+        "Role: Test\n" \
+        "    First block\n" \
+        "    Still first block\n" \
+        "    Back at first\n"
 
     lexer = MetaphorLexer(input_text, "test.txt")
     tokens = []
@@ -91,10 +93,11 @@ def test_indentation_handling():
     assert all(t.column == text_tokens[0].column for t in text_tokens)
 
     # Test nested Context blocks which should show multiple indent levels
-    nested_input = """Context: Outer
-    First level
-Context: Inner
-    Second level"""
+    nested_input = \
+        "Context: Outer\n" \
+        "    First level\n" \
+        "Context: Inner\n" \
+        "    Second level\n"
 
     lexer = MetaphorLexer(nested_input, "test.txt")
     tokens = []
@@ -110,8 +113,11 @@ Context: Inner
 
 def test_bad_indentation():
     """Test handling of incorrect indentation"""
-    input_text = """Role: Test
-   Bad indent"""  # 3 spaces instead of 4
+    # 3 spaces instead of 4
+    input_text = \
+        "Role: Test\n" \
+        "   Bad indent\n"
+
     lexer = MetaphorLexer(input_text, "test.txt")
     tokens = []
     while True:
@@ -126,9 +132,12 @@ def test_bad_indentation():
 
 def test_bad_outdentation():
     """Test handling of incorrect outdentation"""
-    input_text = """Role: Test
-        Double indented
-     Bad outdent"""  # 5 spaces instead of 4 or 8
+    # 5 spaces instead of 4 or 8
+    input_text = \
+        "Role: Test\n" \
+        "        Double indented\n" \
+        "     Bad outdent\n"
+
     lexer = MetaphorLexer(input_text, "test.txt")
     tokens = []
     while True:
@@ -158,10 +167,12 @@ def test_keyword_text_handling():
 
 def test_text_block_continuation():
     """Test handling of continued text blocks"""
-    input_text = """Role: Test
-    First line
-    Second line
-    Third line"""
+    input_text = \
+        "Role: Test\n" \
+        "    First line\n" \
+        "    Second line\n" \
+        "    Third line\n"
+
     lexer = MetaphorLexer(input_text, "test.txt")
     tokens = []
     while True:
@@ -176,9 +187,11 @@ def test_text_block_continuation():
 
 def test_empty_lines():
     """Test handling of empty lines"""
-    input_text = """Role: Test
+    input_text = \
+        "Role: Test\n" \
+        "\n" \
+        "    Text after empty line\n"
 
-    Text after empty line"""
     lexer = MetaphorLexer(input_text, "test.txt")
     tokens = []
     while True:
@@ -193,15 +206,16 @@ def test_empty_lines():
 
 def test_mixed_content():
     """Test handling of mixed content types"""
-    input_text = """Role: Test
-    Description
-Context: First
-    Some text
-    Context: Nested
-        Nested text
-    Back to first
-Action: Do
-    Steps to take"""
+    input_text = \
+        "Role: Test\n" \
+        "    Description\n" \
+        "Context: First\n" \
+        "    Some text\n" \
+        "    Context: Nested\n" \
+        "        Nested text\n" \
+        "    Back to first\n" \
+        "Action: Do\n" \
+        "    Steps to take\n"
 
     lexer = MetaphorLexer(input_text, "test.txt")
     tokens = []
