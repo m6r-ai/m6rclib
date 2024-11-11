@@ -68,12 +68,12 @@ class MetaphorParser:
         self.search_paths: List[str] = []
         self.current_token: Optional[Token] = None
 
-    def parse(self, filename: str, search_paths: List[str]) -> List[Optional[ASTNode]]:
+    def parse(self, input_text: str, filename: str, search_paths: List[str]) -> List[Optional[ASTNode]]:
         """
-        Parse a file and construct the AST.
+        Parse an input string and construct the AST.
 
         Args:
-            file (str): The input file to be parsed.
+            input_text (str): The text to be parsed.
 
         Returns:
             List: A list of the role, context, and action AST nodes.
@@ -81,8 +81,6 @@ class MetaphorParser:
         self.search_paths = search_paths
 
         try:
-            self._check_file_not_loaded(filename)
-            input_text = self._read_file(filename)
             self.lexers.append(MetaphorLexer(input_text, filename))
 
             while True:
@@ -111,14 +109,9 @@ class MetaphorParser:
                     self._record_syntax_error(token, f"Unexpected token: {token.value} at top level")
         except FileNotFoundError as e:
             err_token = self.current_token
-            if not err_token:
-                self.parse_errors.append(MetaphorParserSyntaxError(
-                    f"{e}", "", 0, 0, ""
-                ))
-            else:
-                self.parse_errors.append(MetaphorParserSyntaxError(
-                    f"{e}", err_token.filename, err_token.line, err_token.column, err_token.input
-                ))
+            self.parse_errors.append(MetaphorParserSyntaxError(
+                f"{e}", err_token.filename, err_token.line, err_token.column, err_token.input
+            ))
             raise(MetaphorParserError("parser error", self.parse_errors)) from e
         except MetaphorParserFileAlreadyUsedError as e:
             self.parse_errors.append(MetaphorParserSyntaxError(
@@ -128,6 +121,28 @@ class MetaphorParser:
                 e.token.column,
                 e.token.input
             ))
+            raise(MetaphorParserError("parser error", self.parse_errors)) from e
+
+    def parse_file(self, filename: str, search_paths: List[str]) -> List[Optional[ASTNode]]:
+        """
+        Parse a file and construct the AST.
+
+        Args:
+            file (str): The input file to be parsed.
+
+        Returns:
+            List: A list of the role, context, and action AST nodes.
+        """
+        try:
+            self._check_file_not_loaded(filename)
+            input_text = self._read_file(filename)
+            return self.parse(input_text, filename, search_paths)
+        except FileNotFoundError as e:
+            self.parse_errors.append(MetaphorParserSyntaxError(
+                f"{e}", "", 0, 0, ""
+            ))
+            raise(MetaphorParserError("parser error", self.parse_errors)) from e
+        except MetaphorParserError as e:
             raise(MetaphorParserError("parser error", self.parse_errors)) from e
 
     def get_next_token(self) -> Token:
