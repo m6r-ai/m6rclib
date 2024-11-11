@@ -1,81 +1,163 @@
-# User manual for the m6rc Metaphor compiler library
+# m6rcib API Documentation
 
-## Introduction
+m6rclib is a Python package that provides a parser and prompt compiler for the Metaphor language, a structured text
+format for defining roles, contexts, and actions.
 
-The m6rc compiler library is an embedded library designed to parse, simplify, and process Metaphor language code.
-This document outlines its usage and functionality.
+## Installation
 
-## What is Metaphor?
-
-Metaphor is a simple language designed to create Large Context Prompts (LCPs) for Large Language Models (LLMs).
-
-Metaphor follows a very simple design that captures an action objective for the LLM to fulfil.  This action is supported by a
-hierarchical description of the context the LLM is being asked to use to fulfil the action.
-
-The design is natural language based but this use of natural language is slightly constrained by some keywords so m6rc can
-construct more effective LCP prompts.
-
-This approach has many advantages:
-
-- We can iterate from a simple description to a more complex one over time.
-- When using this to build software, we can quickly iterate new versions, allowing us to try out new ideas very rapidly,
-  prior to committing to them.
-- This approach captures the "memory" of what we're trying to achieve in the prompt as opposed to in an interactive dialogue
-  with an LLM.  This means we can use the same approach with different LLMs, and can take advantage of "temporary" sessions
-  with an LLM so that we don't contaminate the LLM's output based on previous experiments that may not have been fully
-  successful.
-
-### Syntax
-
-Metaphor (m6r) files follow a very simple document-like structure.  It has only 5 keywords:
-
-- `Action:` - defines the top-level action objective being conveyed to the LLM.  There is only one `Action:` keyword
-  in any given Metaphor input.
-- `Context:` - a hierarchical description of the context of the work we want the LLM to do and supporting information.
-- `Embed:` - embeds an external file into the prompt, also indicating the language involved to the LLM.
-- `Include:` - includes another Metaphor file into the current one, as if that one was directly part of the file being
-  procesed, but auto-indented to the current indentation level.
-- `Role:` - defines a role to be played by the LLM (optional).
-
-A Metaphor description requires an `Action:` block and a `Context:` block.  `Context:` blocks are nested to provide
-detail.  Here is a very simple example:
-
+```bash
+pip install m6rclib
 ```
-Context: Top-level context
-    Some notes about the top-level context
 
-    Context: More context to support the top-level context
-        Description of the extra context
+## Basic Usage
+
+```python
+from m6rclib import MetaphorParser
+
+# Create a parser instance
+parser = MetaphorParser()
+
+# Parse a Metaphor string
+input_text = """
+Role:
+    You are a helpful assistant.
+Context:
+    The user needs help with Python.
+Action:
+    Provide clear Python examples.
+"""
+
+# Parse the input with search paths for Include: directives
+trees = parser.parse(input_text, "example.m6r", ["/path/to/includes"])
+
+# Unpack the syntax trees
+role_tree, context_tree, action_tree = trees
+```
+
+## Core Classes
+
+### MetaphorParser
+
+The main class for parsing Metaphor documents.
+
+#### Methods
+
+- `parse(input_text: str, filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]`
+  - Parses a string containing Metaphor content
+  - Args:
+    - `input_text`: The Metaphor content to parse
+    - `filename`: Name to use for error reporting
+    - `search_paths`: List of paths to search for included files
+  - Returns: List of AST nodes [role_tree, context_tree, action_tree]
+  - Raises:
+    - `MetaphorParserError`: If there are syntax errors
+    - `FileNotFoundError`: If a required file cannot be found
+
+- `parse_file(filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]`
+  - Parses a Metaphor file
+  - Args:
+    - `filename`: Path to the file to parse
+    - `search_paths`: List of paths to search for included files
+  - Returns: List of AST nodes [role_tree, context_tree, action_tree]
+  - Raises:
+    - `MetaphorParserError`: If there are syntax errors
+    - `FileNotFoundError`: If the file cannot be found
+
+### MetaphorASTNode
+
+Represents a node in the Abstract Syntax Tree (AST).
+
+#### Properties
+
+- `node_type: MetaphorASTNodeType`
+  - The type of the node
+  - Read-only
+
+- `value: str`
+  - The raw text value of the node
+  - Read-only
+
+- `parent: Optional[MetaphorASTNode]`
+  - The parent node, if any
+  - Read-only
+
+- `children: List[MetaphorASTNode]`
+  - The node's child nodes (returns a shallow copy)
+  - Read-only
+
+#### Methods
+
+- `attach_child(child: MetaphorASTNode) -> None`
+  - Adds a child node to this node
+  - Args:
+    - `child`: The node to attach as a child
+
+- `detach_child(child: MetaphorASTNode) -> None`
+  - Removes a child node from this node
+  - Args:
+    - `child`: The node to detach
+  - Raises:
+    - `ValueError`: If the node is not a child of this node
+
+### MetaphorASTNodeType
+
+An enumeration of possible AST node types.
+
+#### Values
+
+- `ROOT (0)`: Root node of the AST
+- `TEXT (1)`: Text content node
+- `ROLE (2)`: Role definition node
+- `CONTEXT (3)`: Context definition node
+- `ACTION (4)`: Action definition node
+
+### Exceptions
+
+#### MetaphorParserError
+
+Main exception wrapper for parser errors.
+
+- Attributes:
+  - `errors: List[MetaphorParserSyntaxError]`: List of syntax errors encountered
+
+#### MetaphorParserSyntaxError
+
+Detailed syntax error information.
+
+- Attributes:
+  - `message: str`: Error description
+  - `filename: str`: File where error occurred
+  - `line: int`: Line number of error
+  - `column: int`: Column number of error
+  - `input_text: str`: Input line containing error
+
+## File Format
+
+Metaphor files use the following format:
+
+```metaphor
+Role:
+    Description of the role
+    Additional role details
+
+Context:
+    Description of the context
+    Context details
+    Context: Subsection
+        More detailed context information
 
 Action:
-    Some instructions..
+    Description of the action
+    Step-by-step actions to take
 ```
 
-### Indentation
+### Special Directives
 
-To avoid arguments over indentation, Metaphor supports only one valid indentation strategy.  All nested items must be
-indented by exactly 4 spaces.
+- `Include: filename`
+  - Includes another Metaphor file
+  - File is searched for in the provided search paths
 
-Tab characters may be used inside embedded files, but must not be used to indent elements inside Metaphor files.
-
-## Error messages
-
-The compiler provides clear and detailed error messages if issues are detected during the parsing process.
-Errors typically include:
-
-- A description of the error
-- Line number
-- Column number
-- File name
-
-For example:
-
-```
-Expected 'Action' keyword: line 10, column 5, file example.m6r
-```
-
-## FAQ
-
-### Why `m6r`?
-
-m6r is short for Metaphor (m, 6 letters, r).  It's quicker and easier to type!
+- `Embed: pattern`
+  - Embeds the contents of matching files
+  - Supports glob patterns
+  - Use `**/` for recursive matching
