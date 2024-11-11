@@ -298,7 +298,7 @@ def test_role_missing_description_and_indent(tmp_path):
         parser.parse(str(p), [])
     assert "Expected description or indent for 'Role' block" in str(exc_info.value.errors[0].message)
 
-def test_include_directive(parser, tmp_path):
+def test_include_rel_path(parser, tmp_path):
     """Test handling of Include directive"""
     # Create main file - fixed indentation
     main_file = tmp_path / "main.m6r"
@@ -308,6 +308,29 @@ def test_include_directive(parser, tmp_path):
         "Role: Test\n" \
         "    Description\n" \
         "Include: include.m6r\n"
+    )
+
+    include_file.write_text(
+        "Context: Included\n" \
+        "    Content\n"
+    )
+
+    result = parser.parse(str(main_file), [str(tmp_path)])
+    assert result[0].token_type == TokenType.ROLE
+    assert result[1].token_type == TokenType.CONTEXT
+    # The first child node should be the keyword text "Included"
+    assert any(node.value == "Content" for node in result[1].child_nodes)
+
+def test_include_abs_path(parser, tmp_path):
+    """Test handling of Include directive"""
+    # Create main file - fixed indentation
+    main_file = tmp_path / "main.m6r"
+    include_file = tmp_path / "include.m6r"
+
+    main_file.write_text(
+        f"Role: Test\n" \
+        f"    Description\n" \
+        f"Include: {include_file}\n"
     )
 
     include_file.write_text(
@@ -345,7 +368,7 @@ def test_recursive_includes(parser, tmp_path):
         errors = exc_info.value.errors
         assert any("has already been used" in error.message for error in errors)
 
-def test_search_paths(parser, tmp_path):
+def test_include_search_paths(parser, tmp_path):
     """Test handling of search paths for includes"""
     empty_include_dir = tmp_path / "empty_includes"
     empty_include_dir.mkdir()
@@ -413,6 +436,51 @@ def test_os_error(tmp_path, monkeypatch):
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse(str(p), [])
     assert "OS error" in str(exc_info.value.errors[0].message)
+
+def test_include_file_not_found(parser, tmp_path):
+    """Test parse() error handling with existing token context"""
+    # Create a main file that includes a non-existent file
+    main_file = tmp_path / "main.m6r"
+    main_file.write_text(
+        "Role: Test\n" \
+        "    Description\n" \
+        "    Include: nonexistent.m6r\n"
+    )
+
+    # This should trigger the error handling with a current_token
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(str(main_file), [])
+
+    # Verify the error has the correct token context
+    error = exc_info.value.errors[0]
+    assert "File not found" in error.message
+    assert error.filename == str(main_file)  # Should have the main file as context
+    assert error.line > 0  # Should have a valid line number
+    assert error.column > 0  # Should have a valid column number
+    assert "Include: nonexistent.m6r" in error.input_text  # Should have the failing line
+
+def test_include_abs_file_not_found(parser, tmp_path):
+    """Test parse() error handling with existing token context"""
+    # Create a main file that includes a non-existent file
+    main_file = tmp_path / "main.m6r"
+    nonexist_file = tmp_path / "nonexistent.m6r"
+    main_file.write_text(
+        f"Role: Test\n" \
+        f"    Description\n" \
+        f"    Include: {nonexist_file}\n"
+    )
+
+    # This should trigger the error handling with a current_token
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(str(main_file), [])
+
+    # Verify the error has the correct token context
+    error = exc_info.value.errors[0]
+    assert "File not found" in error.message
+    assert error.filename == str(main_file)  # Should have the main file as context
+    assert error.line > 0  # Should have a valid line number
+    assert error.column > 0  # Should have a valid column number
+    assert f"Include: {nonexist_file}" in error.input_text  # Should have the failing line
 
 def test_embed_directive(parser, tmp_path):
     """Test handling of Embed directive"""
@@ -557,45 +625,3 @@ def test_recursive_embed(tmp_path):
         assert any("Level 2 content" in node.value for node in embedded_text)
     finally:
         os.chdir(current_dir)
-
-def test_find_file_path_absolute(parser, tmp_path):
-    """Test _find_file_path with absolute path that exists"""
-    test_file = tmp_path / "test.m6r"
-    test_file.write_text("Content")
-
-    # Convert to absolute path
-    abs_path = str(test_file.absolute())
-    result = parser._find_file_path(abs_path)
-
-    assert result == abs_path
-
-def test_find_file_path_not_found(parser, tmp_path):
-    """Test _find_file_path with non-existent file"""
-    non_existent = str(tmp_path / "nonexistent.m6r")
-    search_paths = [str(tmp_path)]
-
-    with pytest.raises(FileNotFoundError) as exc_info:
-        parser._find_file_path(non_existent)
-    assert "File not found:" in str(exc_info.value)
-
-def test_parse_file_not_found_with_token(parser, tmp_path):
-    """Test parse() error handling with existing token context"""
-    # Create a main file that includes a non-existent file
-    main_file = tmp_path / "main.m6r"
-    main_file.write_text(
-        "Role: Test\n" \
-        "    Description\n" \
-        "    Include: nonexistent.m6r\n"
-    )
-
-    # This should trigger the error handling with a current_token
-    with pytest.raises(MetaphorParserError) as exc_info:
-        parser.parse(str(main_file), [])
-
-    # Verify the error has the correct token context
-    error = exc_info.value.errors[0]
-    assert "File not found" in error.message
-    assert error.filename == str(main_file)  # Should have the main file as context
-    assert error.line > 0  # Should have a valid line number
-    assert error.column > 0  # Should have a valid column number
-    assert "Include: nonexistent.m6r" in error.input_text  # Should have the failing line
