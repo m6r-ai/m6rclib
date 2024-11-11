@@ -1,6 +1,7 @@
 import pytest
-from embed_lexer import EmbedLexer
-from metaphor_token import TokenType
+
+from m6rclib.embed_lexer import EmbedLexer
+from m6rclib.metaphor_token import TokenType
 
 @pytest.fixture
 def sample_input():

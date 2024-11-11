@@ -1,14 +1,16 @@
-import pytest
 import os
 import stat
 from pathlib import Path
-from metaphor_parser import (
+
+import pytest
+
+from m6rclib.metaphor_parser import (
     MetaphorParser,
     MetaphorParserError,
     MetaphorParserSyntaxError,
     MetaphorParserFileAlreadyUsedError
 )
-from metaphor_token import TokenType
+from m6rclib.metaphor_token import TokenType
 
 @pytest.fixture
 def parser():

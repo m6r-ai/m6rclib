@@ -1,7 +1,8 @@
 import dataclasses
+
 import pytest
 
-from metaphor_token import Token, TokenType
+from m6rclib.metaphor_token import Token, TokenType
 
 def test_token_creation():
     """Test basic token creation"""

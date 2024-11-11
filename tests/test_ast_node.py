@@ -1,6 +1,7 @@
 import pytest
-from ast_node import ASTNode
-from metaphor_token import Token, TokenType
+
+from m6rclib.ast_node import ASTNode
+from m6rclib.metaphor_token import Token, TokenType
 
 @pytest.fixture
 def sample_token():

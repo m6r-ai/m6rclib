@@ -1,6 +1,7 @@
 import pytest
-from metaphor_lexer import MetaphorLexer
-from metaphor_token import Token, TokenType
+
+from m6rclib.metaphor_lexer import MetaphorLexer
+from m6rclib.metaphor_token import Token, TokenType
 
 @pytest.fixture
 def empty_lexer():

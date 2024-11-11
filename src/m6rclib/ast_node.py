@@ -14,7 +14,7 @@
 
 from typing import List, Optional
 
-from metaphor_token import Token, TokenType
+from .metaphor_token import Token, TokenType
 
 class ASTNode:
     """

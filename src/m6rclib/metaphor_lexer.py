@@ -14,7 +14,7 @@
 
 from typing import Dict, List, Final
 
-from metaphor_token import Token, TokenType
+from .metaphor_token import Token, TokenType
 
 class MetaphorLexer:
     """
