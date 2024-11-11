@@ -1,4 +1,4 @@
-# m6rcib API Documentation
+# m6rclib API Documentation
 
 m6rclib is a Python package that provides a parser and prompt compiler for the Metaphor language, a structured text
 format for defining roles, contexts, and actions.
