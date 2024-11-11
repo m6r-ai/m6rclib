@@ -25,13 +25,13 @@ def temp_test_files(tmp_path):
     # Create main file
     main = d / "main.m6r"
     main.write_text(
-        "Role: Test\n" \
+        "Role:\n" \
         "    Description\n" \
         "\n" \
-        "Context: TestContext\n" \
+        "Context:\n" \
         "    Some context\n" \
         "\n" \
-        "Action: TestAction\n" \
+        "Action:\n" \
         "    Do something\n"
     )
 
@@ -334,6 +334,9 @@ def test_recursive_includes(parser, tmp_path):
 
 def test_search_paths(parser, tmp_path):
     """Test handling of search paths for includes"""
+    empty_include_dir = tmp_path / "empty_includes"
+    empty_include_dir.mkdir()
+
     include_dir = tmp_path / "includes"
     include_dir.mkdir()
 
@@ -351,7 +354,7 @@ def test_search_paths(parser, tmp_path):
         "    Content\n"
     )
 
-    result = parser.parse(str(main_file), [str(include_dir)])
+    result = parser.parse(str(main_file), [str(empty_include_dir), str(include_dir)])
     assert result[0].token_type == TokenType.ROLE
     assert result[1].token_type == TokenType.CONTEXT
 

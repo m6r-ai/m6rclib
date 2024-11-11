@@ -212,6 +212,7 @@ def test_mixed_content():
         "Context: First\n" \
         "    Some text\n" \
         "    Context: Nested\n" \
+        "        \t\n" \
         "        Nested text\n" \
         "    Back to first\n" \
         "Action: Do\n" \
