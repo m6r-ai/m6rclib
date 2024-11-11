@@ -21,7 +21,7 @@ from typing import List, Set, Optional, Union
 from .metaphor_token import Token, TokenType
 from .embed_lexer import EmbedLexer
 from .metaphor_lexer import MetaphorLexer
-from .ast_node import ASTNode
+from .metaphor_ast_node import MetaphorASTNode, MetaphorASTNodeType
 
 class MetaphorParserFileAlreadyUsedError(Exception):
     """Exception raised when a file is used more than once."""
@@ -54,21 +54,21 @@ class MetaphorParser:
     Parser class to process tokens and build an Abstract Syntax Tree (AST).
 
     Attributes:
-        syntax_tree (ASTNode): The root node of the AST being constructed.
+        syntax_tree (MetaphorASTNode): The root node of the AST being constructed.
         parse_errors (list): List of syntax errors encountered during parsing.
         lexers (list): Stack of lexers used for parsing multiple files.
     """
     def __init__(self) -> None:
-        self.action_syntax_tree: Optional[ASTNode] = None
-        self.context_syntax_tree: Optional[ASTNode] = None
-        self.role_syntax_tree: Optional[ASTNode] = None
+        self.action_syntax_tree: Optional[MetaphorASTNode] = None
+        self.context_syntax_tree: Optional[MetaphorASTNode] = None
+        self.role_syntax_tree: Optional[MetaphorASTNode] = None
         self.parse_errors: List[MetaphorParserSyntaxError] = []
         self.lexers: List[Union[MetaphorLexer, EmbedLexer]] = []
         self.previously_seen_files: Set[str] = set()
         self.search_paths: List[str] = []
         self.current_token: Optional[Token] = None
 
-    def parse(self, input_text: str, filename: str, search_paths: List[str]) -> List[Optional[ASTNode]]:
+    def parse(self, input_text: str, filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]:
         """
         Parse an input string and construct the AST.
 
@@ -123,7 +123,7 @@ class MetaphorParser:
             ))
             raise(MetaphorParserError("parser error", self.parse_errors)) from e
 
-    def parse_file(self, filename: str, search_paths: List[str]) -> List[Optional[ASTNode]]:
+    def parse_file(self, filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]:
         """
         Parse a file and construct the AST.
 
@@ -206,21 +206,17 @@ class MetaphorParser:
 
         self.previously_seen_files.add(canonical_filename)
 
-    def _parse_keyword_text(self, token):
-        """Parse keyword text."""
-        return ASTNode(token)
-
     def _parse_text(self, token):
         """Parse a text block."""
-        return ASTNode(token)
+        return MetaphorASTNode(MetaphorASTNodeType.TEXT, token.value)
 
     def _parse_action(self, token):
         """Parse an action block and construct its AST node."""
-        action_node = ASTNode(token)
+        label_name = ""
 
         init_token = self.get_next_token()
         if init_token.type == TokenType.KEYWORD_TEXT:
-            action_node.add_child(self._parse_keyword_text(init_token))
+            label_name = init_token.value
             indent_token = self.get_next_token()
             if indent_token.type != TokenType.INDENT:
                 self._record_syntax_error(
@@ -230,10 +226,12 @@ class MetaphorParser:
         elif init_token.type != TokenType.INDENT:
             self._record_syntax_error(token, "Expected description or indent for 'Action' block")
 
+        action_node = MetaphorASTNode(MetaphorASTNodeType.ACTION, label_name)
+
         while True:
             token = self.get_next_token()
             if token.type == TokenType.TEXT:
-                action_node.add_child(self._parse_text(token))
+                action_node.attach_child(self._parse_text(token))
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return action_node
             else:
@@ -244,13 +242,13 @@ class MetaphorParser:
 
     def _parse_context(self, token):
         """Parse a Context block."""
-        context_node = ASTNode(token)
+        label_name = ""
 
         seen_token_type = TokenType.NONE
 
         init_token = self.get_next_token()
         if init_token.type == TokenType.KEYWORD_TEXT:
-            context_node.add_child(self._parse_keyword_text(init_token))
+            label_name = init_token.value
             indent_token = self.get_next_token()
             if indent_token.type != TokenType.INDENT:
                 self._record_syntax_error(
@@ -260,15 +258,17 @@ class MetaphorParser:
         elif init_token.type != TokenType.INDENT:
             self._record_syntax_error(token, "Expected description or indent for 'Context' block")
 
+        context_node = MetaphorASTNode(MetaphorASTNodeType.CONTEXT, label_name)
+
         while True:
             token = self.get_next_token()
             if token.type == TokenType.TEXT:
                 if seen_token_type != TokenType.NONE:
                     self._record_syntax_error(token, "Text must come first in a 'Context' block")
 
-                context_node.add_child(self._parse_text(token))
+                context_node.attach_child(self._parse_text(token))
             elif token.type == TokenType.CONTEXT:
-                context_node.add_child(self._parse_context(token))
+                context_node.attach_child(self._parse_context(token))
                 seen_token_type = TokenType.CONTEXT
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return context_node
@@ -277,11 +277,11 @@ class MetaphorParser:
 
     def _parse_role(self, token):
         """Parse a Role block."""
-        role_node = ASTNode(token)
+        label_name = ""
 
         init_token = self.get_next_token()
         if init_token.type == TokenType.KEYWORD_TEXT:
-            role_node.add_child(self._parse_keyword_text(init_token))
+            label_name = init_token.value
             indent_token = self.get_next_token()
             if indent_token.type != TokenType.INDENT:
                 self._record_syntax_error(
@@ -291,10 +291,12 @@ class MetaphorParser:
         elif init_token.type != TokenType.INDENT:
             self._record_syntax_error(token, "Expected description or indent for 'Role' block")
 
+        role_node = MetaphorASTNode(MetaphorASTNodeType.ROLE, label_name)
+
         while True:
             token = self.get_next_token()
             if token.type == TokenType.TEXT:
-                role_node.add_child(self._parse_text(token))
+                role_node.attach_child(self._parse_text(token))
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return role_node
             else:

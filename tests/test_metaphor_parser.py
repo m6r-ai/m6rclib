@@ -10,7 +10,7 @@ from m6rclib.metaphor_parser import (
     MetaphorParserSyntaxError,
     MetaphorParserFileAlreadyUsedError
 )
-from m6rclib.metaphor_token import TokenType
+from m6rclib.metaphor_ast_node import MetaphorASTNodeType
 
 @pytest.fixture
 def parser():
@@ -66,9 +66,9 @@ def test_basic_parsing(parser, temp_test_files):
     result = parser.parse_file(str(main_file), [])
     assert len(result) == 3
     role_node, context_node, action_node = result
-    assert role_node.token_type == TokenType.ROLE
-    assert context_node.token_type == TokenType.CONTEXT
-    assert action_node.token_type == TokenType.ACTION
+    assert role_node.node_type == MetaphorASTNodeType.ROLE
+    assert context_node.node_type == MetaphorASTNodeType.CONTEXT
+    assert action_node.node_type == MetaphorASTNodeType.ACTION
 
 def test_invalid_structure(parser, tmp_path):
     """Test handling of invalid document structure"""
@@ -80,6 +80,7 @@ def test_invalid_structure(parser, tmp_path):
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Unexpected token" in str(exc_info.value.errors[0].message)
 
 def test_missing_indent_after_keyword(parser, tmp_path):
@@ -92,12 +93,14 @@ def test_missing_indent_after_keyword(parser, tmp_path):
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected indent after keyword description" in str(exc_info.value.errors[0].message)
 
 def test_file_not_found(parser):
     """Test handling of non-existent file"""
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file("nonexistent.m6r", [])
+
     assert any("File not found" in str(error.message) for error in exc_info.value.errors)
 
 def test_action_unexpected_token(tmp_path):
@@ -113,6 +116,7 @@ def test_action_unexpected_token(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Unexpected token: Context: in 'Action' block" in str(exc_info.value.errors[0].message)
 
 def test_action_bad_outdent(tmp_path):
@@ -130,6 +134,7 @@ def test_action_bad_outdent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "[Bad Outdent]" in str(exc_info.value.errors[0].message)
 
 def test_action_missing_indent(tmp_path):
@@ -143,6 +148,7 @@ def test_action_missing_indent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected indent after keyword description for 'Action' block" in str(exc_info.value.errors[0].message)
 
 def test_action_missing_description_and_indent(tmp_path):
@@ -156,6 +162,7 @@ def test_action_missing_description_and_indent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected description or indent for 'Action' block" in str(exc_info.value.errors[0].message)
 
 def test_duplicate_action_sections(parser, tmp_path):
@@ -170,6 +177,7 @@ def test_duplicate_action_sections(parser, tmp_path):
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "'Action' already defined" in str(exc_info.value.errors[0].message)
 
 def test_context_missing_indent(tmp_path):
@@ -183,6 +191,7 @@ def test_context_missing_indent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected indent after keyword description for 'Context' block" in str(exc_info.value.errors[0].message)
 
 def test_context_missing_description_and_indent(tmp_path):
@@ -196,6 +205,7 @@ def test_context_missing_description_and_indent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected description or indent for 'Context' block" in str(exc_info.value.errors[0].message)
 
 def test_context_inner_unexpected(tmp_path):
@@ -211,6 +221,7 @@ def test_context_inner_unexpected(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Unexpected token: Action: in 'Context' block" in str(exc_info.value.errors[0].message)
 
 def test_context_late_text(tmp_path):
@@ -227,6 +238,7 @@ def test_context_late_text(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Text must come first in a 'Context' block" in str(exc_info.value.errors[0].message)
 
 def test_duplicate_context_sections(parser, tmp_path):
@@ -241,6 +253,7 @@ def test_duplicate_context_sections(parser, tmp_path):
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "'Context' already defined" in str(exc_info.value.errors[0].message)
 
 def test_duplicate_role_sections(parser, tmp_path):
@@ -255,6 +268,7 @@ def test_duplicate_role_sections(parser, tmp_path):
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "'Role' already defined" in str(exc_info.value.errors[0].message)
 
 def test_role_unexpected_token(tmp_path):
@@ -270,6 +284,7 @@ def test_role_unexpected_token(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Unexpected token: Action: in 'Role' block" in str(exc_info.value.errors[0].message)
 
 def test_role_missing_indent(tmp_path):
@@ -283,6 +298,7 @@ def test_role_missing_indent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected indent after keyword description for 'Role' block" in str(exc_info.value.errors[0].message)
 
 def test_role_missing_description_and_indent(tmp_path):
@@ -296,6 +312,7 @@ def test_role_missing_description_and_indent(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected description or indent for 'Role' block" in str(exc_info.value.errors[0].message)
 
 def test_include_rel_path(parser, tmp_path):
@@ -316,10 +333,11 @@ def test_include_rel_path(parser, tmp_path):
     )
 
     result = parser.parse_file(str(main_file), [str(tmp_path)])
-    assert result[0].token_type == TokenType.ROLE
-    assert result[1].token_type == TokenType.CONTEXT
+    assert result[0].node_type == MetaphorASTNodeType.ROLE
+    assert result[1].node_type == MetaphorASTNodeType.CONTEXT
+
     # The first child node should be the keyword text "Included"
-    assert any(node.value == "Content" for node in result[1].child_nodes)
+    assert any(node.value == "Content" for node in result[1].children)
 
 def test_include_abs_path(parser, tmp_path):
     """Test handling of Include directive"""
@@ -339,10 +357,11 @@ def test_include_abs_path(parser, tmp_path):
     )
 
     result = parser.parse_file(str(main_file), [str(tmp_path)])
-    assert result[0].token_type == TokenType.ROLE
-    assert result[1].token_type == TokenType.CONTEXT
+    assert result[0].node_type == MetaphorASTNodeType.ROLE
+    assert result[1].node_type == MetaphorASTNodeType.CONTEXT
+
     # The first child node should be the keyword text "Included"
-    assert any(node.value == "Content" for node in result[1].child_nodes)
+    assert any(node.value == "Content" for node in result[1].children)
 
 def test_recursive_includes(parser, tmp_path):
     """Test handling of recursive includes"""
@@ -364,6 +383,7 @@ def test_recursive_includes(parser, tmp_path):
 
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(file1), [str(tmp_path)])
+
         # Check the actual error messages in the errors list
         errors = exc_info.value.errors
         assert any("has already been used" in error.message for error in errors)
@@ -391,8 +411,8 @@ def test_include_search_paths(parser, tmp_path):
     )
 
     result = parser.parse_file(str(main_file), [str(empty_include_dir), str(include_dir)])
-    assert result[0].token_type == TokenType.ROLE
-    assert result[1].token_type == TokenType.CONTEXT
+    assert result[0].node_type == MetaphorASTNodeType.ROLE
+    assert result[1].node_type == MetaphorASTNodeType.CONTEXT
 
 def test_include_missing_filename(tmp_path):
     """Test handling of missing filename in Include directives"""
@@ -406,6 +426,7 @@ def test_include_missing_filename(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected file name for 'Include'" in str(exc_info.value.errors[0].message)
 
 def test_file_permission_error(create_read_only_file):
@@ -413,6 +434,7 @@ def test_file_permission_error(create_read_only_file):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(create_read_only_file), [])
+
     assert "You do not have permission to access" in str(exc_info.value.errors[0].message)
 
 def test_directory_error(tmp_path):
@@ -420,6 +442,7 @@ def test_directory_error(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(tmp_path), [])
+
     assert "Is a directory" in str(exc_info.value.errors[0].message)
 
 def test_os_error(tmp_path, monkeypatch):
@@ -435,6 +458,7 @@ def test_os_error(tmp_path, monkeypatch):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "OS error" in str(exc_info.value.errors[0].message)
 
 def test_include_file_not_found(parser, tmp_path):
@@ -502,14 +526,16 @@ def test_embed_directive(parser, tmp_path):
     os.chdir(tmp_path)
     try:
         result = parser.parse_file(str(main_file), [])
-        assert result[0].token_type == TokenType.ROLE
-        assert result[1].token_type == TokenType.CONTEXT
+        assert result[0].node_type == MetaphorASTNodeType.ROLE
+        assert result[1].node_type == MetaphorASTNodeType.CONTEXT
 
         # The embedded content should be part of the Context block's content
         context = result[1]
-        embedded_text = [node for node in context.child_nodes
-                       if node.token_type == TokenType.TEXT and
-                       ("test.txt" in node.value or "plaintext" in node.value)]
+        embedded_text = [
+            node for node in context.children
+            if node.node_type == MetaphorASTNodeType.TEXT and
+            ("test.txt" in node.value or "plaintext" in node.value)
+        ]
         assert len(embedded_text) > 0
     finally:
         os.chdir(current_dir)
@@ -521,6 +547,7 @@ def test_wildcard_embed(parser, tmp_path):
     (tmp_path / "test2.txt").write_text("Content 2")
 
     main_file = tmp_path / "main.m6r"
+
     # Embed within Context block
     main_file.write_text(
         "Role: Test\n" \
@@ -534,16 +561,19 @@ def test_wildcard_embed(parser, tmp_path):
     os.chdir(tmp_path)
     try:
         result = parser.parse_file(str(main_file), [])
-        assert result[0].token_type == TokenType.ROLE
-        assert result[1].token_type == TokenType.CONTEXT
+        assert result[0].node_type == MetaphorASTNodeType.ROLE
+        assert result[1].node_type == MetaphorASTNodeType.CONTEXT
 
         # Check for content from both embedded files
         context = result[1]
-        embedded_text = [node for node in context.child_nodes
-                       if node.token_type == TokenType.TEXT]
+        embedded_text = [
+            node for node in context.children if node.node_type == MetaphorASTNodeType.TEXT
+        ]
+
         # Should find both filenames
         assert any("test1.txt" in node.value for node in embedded_text)
         assert any("test2.txt" in node.value for node in embedded_text)
+
         # Should find both contents
         assert any("Content 1" in node.value for node in embedded_text)
         assert any("Content 2" in node.value for node in embedded_text)
@@ -562,6 +592,7 @@ def test_embed_missing_filename(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "Expected file name or wildcard match for 'Embed'" in str(exc_info.value.errors[0].message)
 
 def test_embed_no_matches(tmp_path):
@@ -576,6 +607,7 @@ def test_embed_no_matches(tmp_path):
     parser = MetaphorParser()
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file(str(p), [])
+
     assert "nonexistent*.txt does not match any files for 'Embed'" in str(exc_info.value.errors[0].message)
 
 def test_recursive_embed(tmp_path):
@@ -611,8 +643,9 @@ def test_recursive_embed(tmp_path):
 
         # Check for content from all embedded files
         context = result[1]  # Context node
-        embedded_text = [node for node in context.child_nodes
-                       if node.token_type == TokenType.TEXT]
+        embedded_text = [
+            node for node in context.children if node.node_type == MetaphorASTNodeType.TEXT
+        ]
 
         # Should find all filenames
         assert any("root.txt" in node.value for node in embedded_text)
