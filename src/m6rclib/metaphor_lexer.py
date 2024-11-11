@@ -46,8 +46,8 @@ class MetaphorLexer:
         Initialize the MetaphorLexer.
 
         Args:
-            filename: Name of the file to parse
-            search_paths: List of paths to search for included files
+            input_text (str): The text content to be lexically analyzed
+            filename (str): Name of the file being processed
         """
         self.in_text_block: bool = False
         self.indent_column: int = 1

@@ -54,9 +54,14 @@ class MetaphorParser:
     Parser class to process tokens and build an Abstract Syntax Tree (AST).
 
     Attributes:
-        syntax_tree (MetaphorASTNode): The root node of the AST being constructed.
-        parse_errors (list): List of syntax errors encountered during parsing.
-        lexers (list): Stack of lexers used for parsing multiple files.
+        action_syntax_tree (Optional[MetaphorASTNode]): The root node of the action AST.
+        context_syntax_tree (Optional[MetaphorASTNode]): The root node of the context AST.
+        role_syntax_tree (Optional[MetaphorASTNode]): The root node of the role AST.
+        parse_errors (List[MetaphorParserSyntaxError]): List of syntax errors encountered during parsing.
+        lexers (List[Union[MetaphorLexer, EmbedLexer]]): Stack of lexers used for parsing multiple files.
+        previously_seen_files (Set[str]): Set of canonical filenames already processed.
+        search_paths (List[str]): List of paths to search for included files.
+        current_token (Optional[Token]): The current token being processed.
     """
     def __init__(self) -> None:
         self.action_syntax_tree: Optional[MetaphorASTNode] = None
@@ -74,9 +79,15 @@ class MetaphorParser:
 
         Args:
             input_text (str): The text to be parsed.
+            filename (str): The name of the file being parsed.
+            search_paths (List[str]): List of paths to search for included files.
 
         Returns:
-            List: A list of the role, context, and action AST nodes.
+            List[Optional[MetaphorASTNode]]: A list containing the role, context, and action AST nodes.
+
+        Raises:
+            MetaphorParserError: If there are syntax errors during parsing.
+            FileNotFoundError: If a required file cannot be found.
         """
         self.search_paths = search_paths
 
@@ -128,10 +139,15 @@ class MetaphorParser:
         Parse a file and construct the AST.
 
         Args:
-            file (str): The input file to be parsed.
+            filename (str): The path to the file to be parsed.
+            search_paths (List[str]): List of paths to search for included files.
 
         Returns:
-            List: A list of the role, context, and action AST nodes.
+            List[Optional[MetaphorASTNode]]: A list containing the role, context, and action AST nodes.
+
+        Raises:
+            MetaphorParserError: If there are syntax errors during parsing.
+            FileNotFoundError: If the file cannot be found.
         """
         try:
             self._check_file_not_loaded(filename)

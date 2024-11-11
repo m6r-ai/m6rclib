@@ -67,6 +67,13 @@ class EmbedLexer:
     }
 
     def __init__(self, input_text, filename):
+        """
+        Initialize the EmbedLexer for handling embedded content.
+
+        Args:
+            input_text (str): The text content to be lexically analyzed
+            filename (str): Name of the file being processed
+        """
         self.filename: str = filename
         self.tokens: List[Token] = []
         self.current_line: int = 1

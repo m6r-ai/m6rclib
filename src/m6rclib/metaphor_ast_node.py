@@ -79,5 +79,5 @@ class MetaphorASTNode:
 
     @property
     def children(self) -> List['MetaphorASTNode']:
-        """The node's children (returns a copy to prevent modification)."""
+        """The node's children (returns a shallow copy to prevent direct list modification)."""
         return self._children.copy()
