@@ -116,6 +116,8 @@ class MetaphorLexer:
         if stripped_line.startswith('\t'):
             self._handle_tab_character(stripped_line, start_column)
             stripped_line = stripped_line[1:]
+            if not stripped_line:
+                return
 
         self._handle_line_content(line, stripped_line, start_column)
 
@@ -215,18 +217,17 @@ class MetaphorLexer:
             self._process_indentation(line, start_column)
 
         text_content = line[start_column - 1:]
-        if text_content:
-            self.tokens.append(
-                Token(
-                    type=TokenType.TEXT,
-                    value=text_content,
-                    input=line,
-                    filename=self.filename,
-                    line=self.current_line,
-                    column=start_column
-                )
+        self.tokens.append(
+            Token(
+                type=TokenType.TEXT,
+                value=text_content,
+                input=line,
+                filename=self.filename,
+                line=self.current_line,
+                column=start_column
             )
-            self.in_text_block = True
+        )
+        self.in_text_block = True
 
     def _process_indentation(self, line: str, start_column: int) -> None:
         """
