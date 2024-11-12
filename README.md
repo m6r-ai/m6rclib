@@ -28,10 +28,7 @@ Action:
 """
 
 # Parse the input with search paths for Include: directives
-trees = parser.parse(input_text, "example.m6r", ["/path/to/includes"])
-
-# Unpack the syntax trees
-role_tree, context_tree, action_tree = trees
+syntax_tree = parser.parse(input_text, "example.m6r", ["/path/to/includes"])
 ```
 
 ## Core Classes
@@ -42,30 +39,30 @@ The main class for parsing Metaphor documents.
 
 #### Methods
 
-- `parse(input_text: str, filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]`
+- `parse(input_text: str, filename: str, search_paths: List[str]) -> MetaphorASTNode`
   - Parses a string containing Metaphor content
   - Args:
     - `input_text`: The Metaphor content to parse
     - `filename`: Name to use for error reporting
     - `search_paths`: List of paths to search for included files
-  - Returns: List of AST nodes [role_tree, context_tree, action_tree]
+  - Returns: The root of the abstract syntax tree
   - Raises:
     - `MetaphorParserError`: If there are syntax errors
     - `FileNotFoundError`: If a required file cannot be found
 
-- `parse_file(filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]`
+- `parse_file(filename: str, search_paths: List[str]) -> MetaphorASTNode`
   - Parses a Metaphor file
   - Args:
     - `filename`: Path to the file to parse
     - `search_paths`: List of paths to search for included files
-  - Returns: List of AST nodes [role_tree, context_tree, action_tree]
+  - Returns: The root of the abstract syntax tree
   - Raises:
     - `MetaphorParserError`: If there are syntax errors
     - `FileNotFoundError`: If the file cannot be found
 
 ### MetaphorASTNode
 
-Represents a node in the Abstract Syntax Tree (AST).
+Represents a node in the abstract syntax tree (AST).
 
 #### Properties
 

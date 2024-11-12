@@ -54,9 +54,7 @@ class MetaphorParser:
     Parser class to process tokens and build an Abstract Syntax Tree (AST).
 
     Attributes:
-        action_syntax_tree (Optional[MetaphorASTNode]): The root node of the action AST.
-        context_syntax_tree (Optional[MetaphorASTNode]): The root node of the context AST.
-        role_syntax_tree (Optional[MetaphorASTNode]): The root node of the role AST.
+        syntax_tree (MetaphorASTNode): The root node of the AST.
         parse_errors (List[MetaphorParserSyntaxError]): List of syntax errors encountered during parsing.
         lexers (List[Union[MetaphorLexer, EmbedLexer]]): Stack of lexers used for parsing multiple files.
         previously_seen_files (Set[str]): Set of canonical filenames already processed.
@@ -64,16 +62,14 @@ class MetaphorParser:
         current_token (Optional[Token]): The current token being processed.
     """
     def __init__(self) -> None:
-        self.action_syntax_tree: Optional[MetaphorASTNode] = None
-        self.context_syntax_tree: Optional[MetaphorASTNode] = None
-        self.role_syntax_tree: Optional[MetaphorASTNode] = None
+        self.syntax_tree: MetaphorASTNode = MetaphorASTNode(MetaphorASTNodeType.ROOT, "")
         self.parse_errors: List[MetaphorParserSyntaxError] = []
         self.lexers: List[Union[MetaphorLexer, EmbedLexer]] = []
         self.previously_seen_files: Set[str] = set()
         self.search_paths: List[str] = []
         self.current_token: Optional[Token] = None
 
-    def parse(self, input_text: str, filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]:
+    def parse(self, input_text: str, filename: str, search_paths: List[str]) -> MetaphorASTNode:
         """
         Parse an input string and construct the AST.
 
@@ -94,28 +90,35 @@ class MetaphorParser:
         try:
             self.lexers.append(MetaphorLexer(input_text, filename))
 
+            seen_action_tree: bool = False
+            seen_context_tree: bool = False
+            seen_role_tree: bool = False
+
             while True:
                 token = self.get_next_token()
                 if token.type == TokenType.ACTION:
-                    if self.action_syntax_tree:
+                    if seen_action_tree:
                         self._record_syntax_error(token, "'Action' already defined")
 
-                    self.action_syntax_tree = self._parse_action(token)
+                    self.syntax_tree.attach_child(self._parse_action(token))
+                    seen_action_tree = True
                 elif token.type == TokenType.CONTEXT:
-                    if self.context_syntax_tree:
+                    if seen_context_tree:
                         self._record_syntax_error(token, "'Context' already defined")
 
-                    self.context_syntax_tree = self._parse_context(token)
+                    self.syntax_tree.attach_child(self._parse_context(token))
+                    seen_context_tree = True
                 elif token.type == TokenType.ROLE:
-                    if self.role_syntax_tree:
+                    if seen_role_tree:
                         self._record_syntax_error(token, "'Role' already defined")
 
-                    self.role_syntax_tree = self._parse_role(token)
+                    self.syntax_tree.attach_child(self._parse_role(token))
+                    seen_role_tree = True
                 elif token.type == TokenType.END_OF_FILE:
                     if self.parse_errors:
                         raise(MetaphorParserError("parser error", self.parse_errors))
 
-                    return [self.role_syntax_tree, self.context_syntax_tree, self.action_syntax_tree]
+                    return self.syntax_tree
                 else:
                     self._record_syntax_error(token, f"Unexpected token: {token.value} at top level")
         except FileNotFoundError as e:
@@ -134,7 +137,7 @@ class MetaphorParser:
             ))
             raise(MetaphorParserError("parser error", self.parse_errors)) from e
 
-    def parse_file(self, filename: str, search_paths: List[str]) -> List[Optional[MetaphorASTNode]]:
+    def parse_file(self, filename: str, search_paths: List[str]) -> MetaphorASTNode:
         """
         Parse a file and construct the AST.
 
