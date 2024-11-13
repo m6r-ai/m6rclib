@@ -232,3 +232,33 @@ def test_mixed_content():
     assert TokenType.CONTEXT in token_types
     assert TokenType.ACTION in token_types
     assert token_types.count(TokenType.TEXT) >= 4  # At least 4 text blocks
+
+def test_fenced_code():
+    """Test handling of fenced code"""
+    input_text = \
+        "Role: Test\n" \
+        "    Description\n" \
+        "Context: First\n" \
+        "    Some text\n" \
+        "    ```metaphor\n" \
+        "    Context: Nested\n" \
+        "        Nested text\n" \
+        "    ```\n" \
+        "    Back to first\n" \
+        "Action: Do\n" \
+        "    Steps to take\n"
+
+    lexer = MetaphorLexer(input_text, "test.txt")
+    tokens = []
+    while True:
+        token = lexer.get_next_token()
+        tokens.append(token)
+        if token.type == TokenType.END_OF_FILE:
+            break
+
+    # Verify token sequence
+    token_types = [t.type for t in tokens if t.type not in (TokenType.INDENT, TokenType.OUTDENT)]
+    assert TokenType.ROLE in token_types
+    assert TokenType.CONTEXT in token_types
+    assert TokenType.ACTION in token_types
+    assert token_types.count(TokenType.TEXT) == 8

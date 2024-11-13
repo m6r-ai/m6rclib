@@ -50,6 +50,7 @@ class MetaphorLexer:
             filename (str): Name of the file being processed
         """
         self.in_text_block: bool = False
+        self.in_fenced_code: bool = False
         self.indent_column: int = 1
         self.filename: str = filename
         self.tokens: List[Token] = []
@@ -119,7 +120,21 @@ class MetaphorLexer:
             if not stripped_line:
                 return
 
-        self._handle_line_content(line, stripped_line, start_column)
+        # Does this line start with a code fence?
+        if stripped_line.startswith('```'):
+            self.in_fenced_code = not self.in_fenced_code
+
+        # If we're not in a fenced code block then look for keywords.
+        if not self.in_fenced_code:
+            words = stripped_line.split(maxsplit=1)
+            first_word = words[0].capitalize()
+
+            if first_word in self.KEYWORDS:
+                self._handle_keyword_line(line, words, first_word, start_column)
+                return
+
+        # Treat this as a text block.
+        self._handle_text_line(line, start_column)
 
     def _handle_tab_character(self, line: str, column: int) -> None:
         """
@@ -142,23 +157,6 @@ class MetaphorLexer:
                 column=column
             )
         )
-
-    def _handle_line_content(self, full_line: str, stripped_line: str, start_column: int) -> None:
-        """
-        Process the content of a line after initial cleaning.
-
-        Args:
-            full_line: The complete line
-            stripped_line: The line with leading whitespace removed
-            start_column: The starting column of the content
-        """
-        words = stripped_line.split(maxsplit=1)
-        first_word = words[0].capitalize()
-
-        if first_word in self.KEYWORDS:
-            self._handle_keyword_line(full_line, words, first_word, start_column)
-        else:
-            self._handle_text_line(full_line, start_column)
 
     def _handle_keyword_line(self, line: str, words: List[str], keyword: str, start_column: int) -> None:
         """
