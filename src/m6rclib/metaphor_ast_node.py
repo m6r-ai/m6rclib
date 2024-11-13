@@ -45,6 +45,37 @@ class MetaphorASTNode:
         self._parent: Optional['MetaphorASTNode'] = None
         self._children: List['MetaphorASTNode'] = []
 
+    def __str__(self, indent: int = 0) -> str:
+        """
+        Returns a string representation of the node and its children in a tree format.
+
+        Args:
+            indent (int): The current indentation level (used recursively)
+
+        Returns:
+            str: A formatted string showing the node's type, value, and children
+        """
+        # Create the indentation string
+        indent_str = "    " * indent
+
+        # Start with this node's information
+        result = f"{indent_str}{self.node_type.name}: {self.value}"
+
+        # Add all children with increased indentation
+        for child in self._children:
+            result += "\n" + child.__str__(indent + 1)
+
+        return result
+
+    def __repr__(self) -> str:
+        """
+        Returns a concise representation of the node for debugging.
+
+        Returns:
+            str: A string in format 'NodeType(value)[num_children]'
+        """
+        return f"{self.node_type.name}({self.value})[{len(self._children)}]"
+
     def attach_child(self, child: 'MetaphorASTNode') -> None:
         """Add a child node to this MetaphorASTNode."""
         child.parent = self
@@ -81,3 +112,15 @@ class MetaphorASTNode:
     def children(self) -> List['MetaphorASTNode']:
         """The node's children (returns a shallow copy to prevent direct list modification)."""
         return self._children.copy()
+
+    def get_children_of_type(self, node_type: MetaphorASTNodeType) -> List['MetaphorASTNode']:
+        """
+        Returns a list of all immediate children that match the specified node type.
+
+        Args:
+            node_type (MetaphorASTNodeType): The type of nodes to filter for
+
+        Returns:
+            List[MetaphorASTNode]: List of child nodes matching the specified type
+        """
+        return [child for child in self._children if child.node_type == node_type]

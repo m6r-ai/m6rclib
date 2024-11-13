@@ -96,6 +96,12 @@ Represents a node in the abstract syntax tree (AST).
   - Raises:
     - `ValueError`: If the node is not a child of this node
 
+- `get_children_of_type(self, node_type: MetaphorASTNodeType) -> List['MetaphorASTNode']`
+  - Returns a list of all immediate children that match the specified node type.
+  - Args:
+    - `node_type (MetaphorASTNodeType)`: The type of nodes to filter for
+  - Returns:List of child nodes matching the specified type
+
 ### MetaphorASTNodeType
 
 An enumeration of possible AST node types.
