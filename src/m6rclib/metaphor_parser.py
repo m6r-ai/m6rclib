@@ -69,6 +69,56 @@ class MetaphorParser:
         self.search_paths: List[str] = []
         self.current_token: Optional[Token] = None
 
+    def _insert_preamble_text(self, text: str) -> None:
+        self.syntax_tree.attach_child(MetaphorASTNode(MetaphorASTNodeType.TEXT, text))
+
+    def _generate_preamble(self) -> None:
+        preamble: List[str] = [
+            "The following is written in a language called Metaphor.",
+            "",
+            "Metaphor has the structure of a document tree with branches and leaves being prefixed",
+            "by the keywords \"Role:\", \"Context:\" or \"Action:\".  Each of these indicates the",
+            "start of a new block of information.",
+            "",
+            "Blocks have an optional section name that will immediately follow them on the same line.",
+            "If this is missing then the section name is not defined.",
+            "",
+            "After a keyword line there may be one or more lines of text that will describe the purpose",
+            "of that block.  A block may also include one or more optional child blocks inside them and",
+            "that further clarify their parent block.",
+            "",
+            "The indentation of the blocks indicates where in the tree the pieces appear.  For example a",
+            "\"Context:\" indented by 8 spaces is a child of the context above it that is indented by 4",
+            "spaces.  One indented 12 spaces would be a child of the block above it that is indented by",
+            "8 spaces.",
+            "",
+            "If you are presented with code or document fragments inside a block delimited by 3",
+            "backticks then please pay close attention to the indentation level of the opening set of",
+            "backticks.  Please remove this amount of whitespace from the start of each line of the",
+            "enclosed text.  In the following example, even though \"text line 1\" is indented by",
+            "4 spaces, you should remove these 4 spaces because the backticks are also indented by",
+            "4 spaces.  You should also remove 4 spaces from \"text line 2\" because of this",
+            "backtick indentation, but leave the remaining 2 spaces:",
+            "    ```plaintext",
+            "    text line 1",
+            "      text line 2",
+            "    ```"
+            "",
+            "If a \"Role:\" block exists then this is the role you should fulfil.",
+            "",
+            "\"Context:\" blocks provide context necessary to understand what you will be asked to do.",
+            "",
+            "An \"Action:\" block describes the task I would like you to do.",
+            "",
+            "When you process the actions please carefully ensure you do all of them accurately.  These",
+            "need to fulfil all the details described in the \"Context:\".  Ensure you complete all the",
+            "elements and do not include any placeholders.",
+            ""
+        ]
+
+        for text in preamble:
+            self._insert_preamble_text(text)
+
     def parse(self, input_text: str, filename: str, search_paths: List[str]) -> MetaphorASTNode:
         """
         Parse an input string and construct the AST.
@@ -89,6 +139,7 @@ class MetaphorParser:
 
         try:
             self.lexers.append(MetaphorLexer(input_text, filename))
+            self._generate_preamble()
 
             seen_action_tree: bool = False
             seen_context_tree: bool = False

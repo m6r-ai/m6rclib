@@ -64,11 +64,10 @@ def test_basic_parsing(parser, temp_test_files):
     """Test basic parsing of a valid file"""
     main_file = Path(temp_test_files) / "main.m6r"
     result = parser.parse_file(str(main_file), [])
-    assert len(result.children) == 3
-    role_node, context_node, action_node = result.children
-    assert role_node.node_type == MetaphorASTNodeType.ROLE
-    assert context_node.node_type == MetaphorASTNodeType.CONTEXT
-    assert action_node.node_type == MetaphorASTNodeType.ACTION
+    assert len(result.get_children_of_type(MetaphorASTNodeType.TEXT)) > 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ACTION)) == 1
 
 def test_invalid_structure(parser, tmp_path):
     """Test handling of invalid document structure"""
@@ -333,11 +332,12 @@ def test_include_rel_path(parser, tmp_path):
     )
 
     result = parser.parse_file(str(main_file), [str(tmp_path)])
-    assert result.children[0].node_type == MetaphorASTNodeType.ROLE
-    assert result.children[1].node_type == MetaphorASTNodeType.CONTEXT
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+    context_nodes = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+    assert len(context_nodes) == 1
 
     # The first child node should be the keyword text "Included"
-    assert any(node.value == "Content" for node in result.children[1].children)
+    assert any(node.value == "Content" for node in context_nodes[0].children)
 
 def test_include_abs_path(parser, tmp_path):
     """Test handling of Include directive"""
@@ -357,11 +357,12 @@ def test_include_abs_path(parser, tmp_path):
     )
 
     result = parser.parse_file(str(main_file), [str(tmp_path)])
-    assert result.children[0].node_type == MetaphorASTNodeType.ROLE
-    assert result.children[1].node_type == MetaphorASTNodeType.CONTEXT
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+    context_nodes = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+    assert len(context_nodes) == 1
 
     # The first child node should be the keyword text "Included"
-    assert any(node.value == "Content" for node in result.children[1].children)
+    assert any(node.value == "Content" for node in context_nodes[0].children)
 
 def test_recursive_includes(parser, tmp_path):
     """Test handling of recursive includes"""
@@ -411,8 +412,8 @@ def test_include_search_paths(parser, tmp_path):
     )
 
     result = parser.parse_file(str(main_file), [str(empty_include_dir), str(include_dir)])
-    assert result.children[0].node_type == MetaphorASTNodeType.ROLE
-    assert result.children[1].node_type == MetaphorASTNodeType.CONTEXT
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 1
 
 def test_include_missing_filename(tmp_path):
     """Test handling of missing filename in Include directives"""
@@ -526,11 +527,12 @@ def test_embed_directive(parser, tmp_path):
     os.chdir(tmp_path)
     try:
         result = parser.parse_file(str(main_file), [])
-        assert result.children[0].node_type == MetaphorASTNodeType.ROLE
-        assert result.children[1].node_type == MetaphorASTNodeType.CONTEXT
+        assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+        context_nodes = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+        assert len(context_nodes) == 1
 
         # The embedded content should be part of the Context block's content
-        context = result.children[1]
+        context = context_nodes[0]
         embedded_text = [
             node for node in context.children
             if node.node_type == MetaphorASTNodeType.TEXT and
@@ -561,11 +563,12 @@ def test_wildcard_embed(parser, tmp_path):
     os.chdir(tmp_path)
     try:
         result = parser.parse_file(str(main_file), [])
-        assert result.children[0].node_type == MetaphorASTNodeType.ROLE
-        assert result.children[1].node_type == MetaphorASTNodeType.CONTEXT
+        assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+        context_nodes = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+        assert len(context_nodes) == 1
 
         # Check for content from both embedded files
-        context = result.children[1]
+        context = context_nodes[0]
         embedded_text = [
             node for node in context.children if node.node_type == MetaphorASTNodeType.TEXT
         ]
@@ -642,7 +645,8 @@ def test_recursive_embed(tmp_path):
         result = parser.parse_file(str(main_file), [])
 
         # Check for content from all embedded files
-        context = result.children[1]
+        context_nodes = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+        context = context_nodes[0]
         embedded_text = [
             node for node in context.children if node.node_type == MetaphorASTNodeType.TEXT
         ]
