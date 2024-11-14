@@ -74,7 +74,9 @@ class MetaphorParser:
 
     def _generate_preamble(self) -> None:
         preamble: List[str] = [
-            "The following is written in a language called Metaphor.",
+            "The following preamble describes some elements of a language called Metaphor.  Please pay",
+            "extremely close attention to the details as they will affect the way you interpret",
+            "everything that follows after \"BEGIN DESCRIPTION IN METAPHOR:\"",
             "",
             "Metaphor has the structure of a document tree with branches and leaves being prefixed",
             "by the keywords \"Role:\", \"Context:\" or \"Action:\".  Each of these indicates the",
@@ -85,24 +87,28 @@ class MetaphorParser:
             "",
             "After a keyword line there may be one or more lines of text that will describe the purpose",
             "of that block.  A block may also include one or more optional child blocks inside them and",
-            "that further clarify their parent block.",
+            "that further clarify their parent block.  These text blocks and any keywords lines nested",
+            "inside a parent block will be indented by 4 spaces more than its parent.",
             "",
-            "The indentation of the blocks indicates where in the tree the pieces appear.  For example a",
-            "\"Context:\" indented by 8 spaces is a child of the context above it that is indented by 4",
-            "spaces.  One indented 12 spaces would be a child of the block above it that is indented by",
-            "8 spaces.",
+            "For example a \"Context:\" indented by 8 spaces is a child of the block above it that is",
+            "indented by 4 spaces.  One indented 12 spaces would be a child of the block above it that is",
+            "indented by 8 spaces.",
             "",
-            "If you are presented with code or document fragments inside a block delimited by 3",
-            "backticks then please pay close attention to the indentation level of the opening set of",
-            "backticks.  Please remove this amount of whitespace from the start of each line of the",
-            "enclosed text.  In the following example, even though \"text line 1\" is indented by",
-            "4 spaces, you should remove these 4 spaces because the backticks are also indented by",
-            "4 spaces.  You should also remove 4 spaces from \"text line 2\" because of this",
-            "backtick indentation, but leave the remaining 2 spaces:",
+            "Within the text of a block, you may be presented with code or document fragments inside a",
+            "block delimited by 3 backticks.  Please pay close attention to the indentation level of the",
+            "opening 3 backticks.  The identation of such code or document fragments is relative to this,",
+            "not relative to the block in which the code or document fragment occurs.",
+            "For example, consider:",
             "    ```plaintext",
             "    text line 1",
             "      text line 2",
-            "    ```"
+            "    ```",
+            "        ```plaintext",
+            "         text line 3",
+            "        ```"
+            "In this example, \"text line 1\" is not indented from the opening 3 backticks and thus has no",
+            "indentation.  \"text line 2\" is indented by 2 spaces relative to the opening 3 backticks",
+            " \"text line 3\" is indented by 1 space relative to its opening 3 backticks.",
             "",
             "If a \"Role:\" block exists then this is the role you should fulfil.",
             "",
@@ -113,7 +119,8 @@ class MetaphorParser:
             "When you process the actions please carefully ensure you do all of them accurately.  These",
             "need to fulfil all the details described in the \"Context:\".  Ensure you complete all the",
             "elements and do not include any placeholders.",
-            ""
+            "",
+            "BEGIN DESCRIPTION IN METAPHOR:"
         ]
 
         for text in preamble:

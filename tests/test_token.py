@@ -14,11 +14,13 @@ def test_token_creation():
     assert token.line == 1
     assert token.column == 1
 
+
 def test_token_immutability():
     """Test that tokens are immutable"""
     token = Token(TokenType.TEXT, "test", "test input", "test.txt", 1, 1)
     with pytest.raises(dataclasses.FrozenInstanceError):
         token.value = "new value"
+
 
 def test_token_string_representation():
     """Test string representation of token"""

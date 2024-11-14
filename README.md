@@ -114,6 +114,22 @@ An enumeration of possible AST node types.
 - `CONTEXT (3)`: Context definition node
 - `ACTION (4)`: Action definition node
 
+### Formatting Functions
+
+Helper functions for formatting nodes and errors.
+
+- `format_ast(node: MetaphorASTNode) -> str`
+  - Format an AST node and its children as a string
+  - Args:
+    - `node`: The root node to format
+  - Returns: Formatted string representation of the AST
+
+- `format_errors(errors: List[MetaphorParserSyntaxError]) -> str`
+  - Format a list of syntax errors as a string
+  - Args:
+    - `errors`: List of syntax errors to format
+  - Returns: Formatted error string with each error on separate lines
+
 ### Exceptions
 
 #### MetaphorParserError

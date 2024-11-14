@@ -21,6 +21,7 @@ def complex_tree():
 
     return root
 
+
 def test_metaphor_ast_node_creation(sample_node):
     """Test basic node creation"""
     node = MetaphorASTNode(MetaphorASTNodeType.TEXT, "hello")
@@ -28,6 +29,7 @@ def test_metaphor_ast_node_creation(sample_node):
     assert node.value == "hello"
     assert node.parent is None
     assert len(node.children) == 0
+
 
 def test_metaphor_ast_node_attach_child(sample_node):
     """Test attaching child nodes"""
@@ -37,6 +39,7 @@ def test_metaphor_ast_node_attach_child(sample_node):
     assert len(sample_node.children) == 1
     assert child_node.parent == sample_node
     assert sample_node.children[0] == child_node
+
 
 def test_metaphor_ast_node_detach_child(sample_node):
     """Test detaching a child node"""
@@ -51,6 +54,7 @@ def test_metaphor_ast_node_detach_child(sample_node):
     assert len(sample_node.children) == 1
     assert sample_node.children[0].value == "child2"
 
+
 def test_metaphor_ast_node_detach_unattached_child(sample_node):
     """Test detaching a child node"""
     child1_node = MetaphorASTNode(MetaphorASTNodeType.TEXT, "child1")
@@ -64,9 +68,11 @@ def test_metaphor_ast_node_detach_unattached_child(sample_node):
 
     assert "Node is not a child of this node" in str(exc_info)
 
+
 def test_str_single_node(sample_node):
     """Test string representation of a single node without children"""
     assert str(sample_node) == "TEXT: test input"
+
 
 def test_str_with_child():
     """Test string representation of a parent node with one child"""
@@ -80,6 +86,7 @@ def test_str_with_child():
     )
     assert str(parent) == expected
 
+
 def test_str_complex_tree(complex_tree):
     """Test string representation of a complex tree structure"""
     expected = (
@@ -91,25 +98,30 @@ def test_str_complex_tree(complex_tree):
     )
     assert str(complex_tree) == expected
 
+
 def test_str_empty_value():
     """Test string representation of a node with empty value"""
     node = MetaphorASTNode(MetaphorASTNodeType.TEXT, "")
     assert str(node) == "TEXT: "
 
+
 def test_repr_single_node(sample_node):
     """Test repr of a single node without children"""
     assert repr(sample_node) == "TEXT(test input)[0]"
+
 
 def test_repr_with_children(complex_tree):
     """Test repr of nodes with different numbers of children"""
     assert repr(complex_tree) == "ROOT(document)[2]"
     assert repr(complex_tree.children[1]) == "ROLE(user)[2]"  # The ROLE node has 2 children
 
+
 def test_str_special_characters():
     """Test string representation with special characters"""
     node = MetaphorASTNode(MetaphorASTNodeType.TEXT, "Hello\nWorld")
     assert str(node) == "TEXT: Hello\nWorld"
     assert repr(node) == "TEXT(Hello\nWorld)[0]"
+
 
 def test_str_unicode_characters():
     """Test string representation with Unicode characters"""

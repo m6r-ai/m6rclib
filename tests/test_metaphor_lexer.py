@@ -7,6 +7,7 @@ from m6rclib.metaphor_token import Token, TokenType
 def empty_lexer():
     return MetaphorLexer("", "test.txt")
 
+
 @pytest.fixture
 def basic_lexer():
     input_text = \
@@ -20,6 +21,7 @@ def basic_lexer():
         "    Do something\n"
     return MetaphorLexer(input_text, "test.txt")
 
+
 def test_lexer_initialization(empty_lexer):
     """Test basic lexer initialization"""
     assert empty_lexer.filename == "test.txt"
@@ -27,10 +29,12 @@ def test_lexer_initialization(empty_lexer):
     assert empty_lexer.indent_column == 1
     assert empty_lexer.current_line == 1
 
+
 def test_empty_input_tokenization(empty_lexer):
     """Test tokenization of empty input"""
     token = empty_lexer.get_next_token()
     assert token.type == TokenType.END_OF_FILE
+
 
 def test_comment_handling():
     """Test handling of comment lines"""
@@ -39,6 +43,7 @@ def test_comment_handling():
     assert token.type == TokenType.ROLE
     assert token.value == "Role:"
 
+
 def test_tab_character_handling():
     """Test handling of tab characters"""
     lexer = MetaphorLexer("\tRole: Test", "test.txt")
@@ -46,6 +51,7 @@ def test_tab_character_handling():
     assert token.type == TokenType.TAB
     token = lexer.get_next_token()
     assert token.type == TokenType.ROLE
+
 
 def test_keyword_detection(basic_lexer):
     """Test detection of keywords"""
@@ -62,6 +68,7 @@ def test_keyword_detection(basic_lexer):
     assert keyword_tokens[1].type == TokenType.CONTEXT
     assert keyword_tokens[2].type == TokenType.CONTEXT  # Nested context
     assert keyword_tokens[3].type == TokenType.ACTION
+
 
 def test_indentation_handling():
     """Test handling of indentation"""
@@ -111,6 +118,7 @@ def test_indentation_handling():
     indent_tokens = [t for t in tokens if t.type == TokenType.INDENT]
     assert len(indent_tokens) == 2  # One for each Context block
 
+
 def test_bad_indentation():
     """Test handling of incorrect indentation"""
     # 3 spaces instead of 4
@@ -129,6 +137,7 @@ def test_bad_indentation():
     bad_indent_tokens = [t for t in tokens if t.type == TokenType.BAD_INDENT]
     assert len(bad_indent_tokens) == 1
     assert bad_indent_tokens[0].column == 4
+
 
 def test_bad_outdentation():
     """Test handling of incorrect outdentation"""
@@ -150,6 +159,7 @@ def test_bad_outdentation():
     assert len(bad_outdent_tokens) == 1
     assert bad_outdent_tokens[0].column == 6
 
+
 def test_keyword_text_handling():
     """Test handling of text after keywords"""
     input_text = "Role: Test Description"
@@ -164,6 +174,7 @@ def test_keyword_text_handling():
     assert tokens[0].type == TokenType.ROLE
     assert tokens[1].type == TokenType.KEYWORD_TEXT
     assert tokens[1].value == "Test Description"
+
 
 def test_text_block_continuation():
     """Test handling of continued text blocks"""
@@ -185,6 +196,7 @@ def test_text_block_continuation():
     assert len(text_tokens) == 3
     assert all(t.column == text_tokens[0].column for t in text_tokens)
 
+
 def test_empty_lines():
     """Test handling of empty lines"""
     input_text = \
@@ -203,6 +215,7 @@ def test_empty_lines():
     text_tokens = [t for t in tokens if t.type == TokenType.TEXT]
     assert len(text_tokens) == 1
     assert text_tokens[0].value == "Text after empty line"
+
 
 def test_mixed_content():
     """Test handling of mixed content types"""
@@ -232,6 +245,7 @@ def test_mixed_content():
     assert TokenType.CONTEXT in token_types
     assert TokenType.ACTION in token_types
     assert token_types.count(TokenType.TEXT) >= 4  # At least 4 text blocks
+
 
 def test_fenced_code():
     """Test handling of fenced code"""

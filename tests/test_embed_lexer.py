@@ -7,12 +7,14 @@ from m6rclib.metaphor_token import TokenType
 def sample_input():
     return "def hello():\n    print('Hello, World!')"
 
+
 def test_embed_lexer_creation():
     """Test basic lexer creation"""
     lexer = EmbedLexer("test content", "test.py")
     assert lexer.filename == "test.py"
     assert lexer.input == "test content"
     assert lexer.current_line == 2
+
 
 def test_embed_lexer_tokenization(sample_input):
     """Test tokenization of Python code"""
@@ -28,6 +30,7 @@ def test_embed_lexer_tokenization(sample_input):
     assert tokens[0].type == TokenType.TEXT
     assert tokens[0].value.startswith("File:")
     assert "```python" in tokens[1].value
+
 
 def test_embed_lexer_txt():
     """Test the EmbedLexer's token generation"""
@@ -48,6 +51,7 @@ def test_embed_lexer_txt():
     assert tokens[3].value == "```"
     assert tokens[4].type == TokenType.END_OF_FILE
 
+
 def test_embed_lexer_js():
     """Test the EmbedLexer's token generation"""
     input_text = "Test content"
@@ -66,6 +70,7 @@ def test_embed_lexer_js():
     assert tokens[2].value == "Test content"
     assert tokens[3].value == "```"
     assert tokens[4].type == TokenType.END_OF_FILE
+
 
 def test_embed_lexer_foo_js():
     """Test the EmbedLexer's token generation"""
@@ -86,6 +91,7 @@ def test_embed_lexer_foo_js():
     assert tokens[3].value == "```"
     assert tokens[4].type == TokenType.END_OF_FILE
 
+
 def test_embed_lexer_m6r():
     """Test the EmbedLexer's token generation"""
     input_text = "Test content"
@@ -105,6 +111,7 @@ def test_embed_lexer_m6r():
     assert tokens[3].value == "```"
     assert tokens[4].type == TokenType.END_OF_FILE
 
+
 def test_embed_lexer():
     """Test the EmbedLexer's token generation"""
     input_text = "Test content"
@@ -123,6 +130,7 @@ def test_embed_lexer():
     assert tokens[2].value == "Test content"
     assert tokens[3].value == "```"
     assert tokens[4].type == TokenType.END_OF_FILE
+
 
 def test_empty_lexer():
     """Test behavior when all tokens have been consumed"""

@@ -16,6 +16,7 @@ from m6rclib.metaphor_ast_node import MetaphorASTNodeType
 def parser():
     return MetaphorParser()
 
+
 @pytest.fixture
 def temp_test_files(tmp_path):
     """Create a set of temporary test files"""
@@ -44,6 +45,7 @@ def temp_test_files(tmp_path):
 
     return str(d)
 
+
 @pytest.fixture
 def create_read_only_file(tmp_path):
     """Create a read-only file for testing permission errors"""
@@ -60,6 +62,7 @@ def create_read_only_file(tmp_path):
     # Restore permissions for cleanup
     os.chmod(p, stat.S_IWRITE | stat.S_IREAD)
 
+
 def test_basic_parsing(parser, temp_test_files):
     """Test basic parsing of a valid file"""
     main_file = Path(temp_test_files) / "main.m6r"
@@ -68,6 +71,7 @@ def test_basic_parsing(parser, temp_test_files):
     assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
     assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 1
     assert len(result.get_children_of_type(MetaphorASTNodeType.ACTION)) == 1
+
 
 def test_invalid_structure(parser, tmp_path):
     """Test handling of invalid document structure"""
@@ -82,6 +86,7 @@ def test_invalid_structure(parser, tmp_path):
 
     assert "Unexpected token" in str(exc_info.value.errors[0].message)
 
+
 def test_missing_indent_after_keyword(parser, tmp_path):
     """Test handling of missing indent after keyword text"""
     p = tmp_path / "missing_indent.m6r"
@@ -95,12 +100,14 @@ def test_missing_indent_after_keyword(parser, tmp_path):
 
     assert "Expected indent after keyword description" in str(exc_info.value.errors[0].message)
 
+
 def test_file_not_found(parser):
     """Test handling of non-existent file"""
     with pytest.raises(MetaphorParserError) as exc_info:
         parser.parse_file("nonexistent.m6r", [])
 
     assert any("File not found" in str(error.message) for error in exc_info.value.errors)
+
 
 def test_action_unexpected_token(tmp_path):
     """Test handling of unexpected tokens in Action blocks"""
@@ -117,6 +124,7 @@ def test_action_unexpected_token(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Unexpected token: Context: in 'Action' block" in str(exc_info.value.errors[0].message)
+
 
 def test_action_bad_outdent(tmp_path):
     """Test handling of incorrect indentation in Action blocks"""
@@ -136,6 +144,7 @@ def test_action_bad_outdent(tmp_path):
 
     assert "[Bad Outdent]" in str(exc_info.value.errors[0].message)
 
+
 def test_action_missing_indent(tmp_path):
     """Test handling of missing indentation in Action blocks"""
     p = tmp_path / "action_no_indent.m6r"
@@ -150,6 +159,7 @@ def test_action_missing_indent(tmp_path):
 
     assert "Expected indent after keyword description for 'Action' block" in str(exc_info.value.errors[0].message)
 
+
 def test_action_missing_description_and_indent(tmp_path):
     """Test handling of Action block with neither description nor indent"""
     p = tmp_path / "action_invalid.m6r"
@@ -163,6 +173,7 @@ def test_action_missing_description_and_indent(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Expected description or indent for 'Action' block" in str(exc_info.value.errors[0].message)
+
 
 def test_duplicate_action_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
@@ -179,6 +190,7 @@ def test_duplicate_action_sections(parser, tmp_path):
 
     assert "'Action' already defined" in str(exc_info.value.errors[0].message)
 
+
 def test_context_missing_indent(tmp_path):
     """Test handling of missing indentation in Context blocks"""
     p = tmp_path / "context_no_indent.m6r"
@@ -193,6 +205,7 @@ def test_context_missing_indent(tmp_path):
 
     assert "Expected indent after keyword description for 'Context' block" in str(exc_info.value.errors[0].message)
 
+
 def test_context_missing_description_and_indent(tmp_path):
     """Test handling of Context block with neither description nor indent"""
     p = tmp_path / "context_invalid.m6r"
@@ -206,6 +219,7 @@ def test_context_missing_description_and_indent(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Expected description or indent for 'Context' block" in str(exc_info.value.errors[0].message)
+
 
 def test_context_inner_unexpected(tmp_path):
     """Test handling of unexpected tokens in Context blocks"""
@@ -222,6 +236,7 @@ def test_context_inner_unexpected(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Unexpected token: Action: in 'Context' block" in str(exc_info.value.errors[0].message)
+
 
 def test_context_late_text(tmp_path):
     """Test handling of text after inner Context in Context blocks"""
@@ -240,6 +255,7 @@ def test_context_late_text(tmp_path):
 
     assert "Text must come first in a 'Context' block" in str(exc_info.value.errors[0].message)
 
+
 def test_duplicate_context_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
@@ -255,6 +271,7 @@ def test_duplicate_context_sections(parser, tmp_path):
 
     assert "'Context' already defined" in str(exc_info.value.errors[0].message)
 
+
 def test_duplicate_role_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
@@ -269,6 +286,7 @@ def test_duplicate_role_sections(parser, tmp_path):
         parser.parse_file(str(p), [])
 
     assert "'Role' already defined" in str(exc_info.value.errors[0].message)
+
 
 def test_role_unexpected_token(tmp_path):
     """Test handling of unexpected tokens in Role blocks"""
@@ -286,6 +304,7 @@ def test_role_unexpected_token(tmp_path):
 
     assert "Unexpected token: Action: in 'Role' block" in str(exc_info.value.errors[0].message)
 
+
 def test_role_missing_indent(tmp_path):
     """Test handling of missing indentation in Role blocks"""
     p = tmp_path / "role_no_indent.m6r"
@@ -300,6 +319,7 @@ def test_role_missing_indent(tmp_path):
 
     assert "Expected indent after keyword description for 'Role' block" in str(exc_info.value.errors[0].message)
 
+
 def test_role_missing_description_and_indent(tmp_path):
     """Test handling of Role block with neither description nor indent"""
     p = tmp_path / "role_invalid.m6r"
@@ -313,6 +333,7 @@ def test_role_missing_description_and_indent(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Expected description or indent for 'Role' block" in str(exc_info.value.errors[0].message)
+
 
 def test_include_rel_path(parser, tmp_path):
     """Test handling of Include directive"""
@@ -339,6 +360,7 @@ def test_include_rel_path(parser, tmp_path):
     # The first child node should be the keyword text "Included"
     assert any(node.value == "Content" for node in context_nodes[0].children)
 
+
 def test_include_abs_path(parser, tmp_path):
     """Test handling of Include directive"""
     # Create main file - fixed indentation
@@ -364,6 +386,7 @@ def test_include_abs_path(parser, tmp_path):
     # The first child node should be the keyword text "Included"
     assert any(node.value == "Content" for node in context_nodes[0].children)
 
+
 def test_recursive_includes(parser, tmp_path):
     """Test handling of recursive includes"""
     file1 = tmp_path / "file1.m6r"
@@ -388,6 +411,7 @@ def test_recursive_includes(parser, tmp_path):
         # Check the actual error messages in the errors list
         errors = exc_info.value.errors
         assert any("has already been used" in error.message for error in errors)
+
 
 def test_include_search_paths(parser, tmp_path):
     """Test handling of search paths for includes"""
@@ -415,6 +439,7 @@ def test_include_search_paths(parser, tmp_path):
     assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
     assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 1
 
+
 def test_include_missing_filename(tmp_path):
     """Test handling of missing filename in Include directives"""
     p = tmp_path / "include_no_file.m6r"
@@ -430,6 +455,7 @@ def test_include_missing_filename(tmp_path):
 
     assert "Expected file name for 'Include'" in str(exc_info.value.errors[0].message)
 
+
 def test_file_permission_error(create_read_only_file):
     """Test handling of permission errors when reading files"""
     parser = MetaphorParser()
@@ -438,6 +464,7 @@ def test_file_permission_error(create_read_only_file):
 
     assert "You do not have permission to access" in str(exc_info.value.errors[0].message)
 
+
 def test_directory_error(tmp_path):
     """Test handling of IsADirectoryError"""
     parser = MetaphorParser()
@@ -445,6 +472,7 @@ def test_directory_error(tmp_path):
         parser.parse_file(str(tmp_path), [])
 
     assert "Is a directory" in str(exc_info.value.errors[0].message)
+
 
 def test_os_error(tmp_path, monkeypatch):
     """Test handling of general OS errors"""
@@ -461,6 +489,7 @@ def test_os_error(tmp_path, monkeypatch):
         parser.parse_file(str(p), [])
 
     assert "OS error" in str(exc_info.value.errors[0].message)
+
 
 def test_include_file_not_found(parser, tmp_path):
     """Test parse_file() error handling with existing token context"""
@@ -484,6 +513,7 @@ def test_include_file_not_found(parser, tmp_path):
     assert error.column > 0  # Should have a valid column number
     assert "Include: nonexistent.m6r" in error.input_text  # Should have the failing line
 
+
 def test_include_abs_file_not_found(parser, tmp_path):
     """Test parse_file() error handling with existing token context"""
     # Create a main file that includes a non-existent file
@@ -506,6 +536,7 @@ def test_include_abs_file_not_found(parser, tmp_path):
     assert error.line > 0  # Should have a valid line number
     assert error.column > 0  # Should have a valid column number
     assert f"Include: {nonexist_file}" in error.input_text  # Should have the failing line
+
 
 def test_embed_directive(parser, tmp_path):
     """Test handling of Embed directive"""
@@ -541,6 +572,7 @@ def test_embed_directive(parser, tmp_path):
         assert len(embedded_text) > 0
     finally:
         os.chdir(current_dir)
+
 
 def test_wildcard_embed(parser, tmp_path):
     """Test handling of wildcard patterns in Embed directive"""
@@ -583,6 +615,7 @@ def test_wildcard_embed(parser, tmp_path):
     finally:
         os.chdir(current_dir)
 
+
 def test_embed_missing_filename(tmp_path):
     """Test handling of missing filename in Embed directives"""
     p = tmp_path / "embed_no_file.m6r"
@@ -598,6 +631,7 @@ def test_embed_missing_filename(tmp_path):
 
     assert "Expected file name or wildcard match for 'Embed'" in str(exc_info.value.errors[0].message)
 
+
 def test_embed_no_matches(tmp_path):
     """Test handling of no matching files for Embed directives"""
     p = tmp_path / "embed_no_matches.m6r"
@@ -612,6 +646,7 @@ def test_embed_no_matches(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "nonexistent*.txt does not match any files for 'Embed'" in str(exc_info.value.errors[0].message)
+
 
 def test_recursive_embed(tmp_path):
     """Test handling of recursive Embed with **/ pattern"""
