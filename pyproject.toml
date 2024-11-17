@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "m6rclib"
-version = "0.4.0"
+version = "0.4.1"
 description = "An embedded parser and LLM AI prompt compiler for the Metaphor language"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 license = {file = "LICENSE.txt"}
 authors = [
     {name = "Dave Hudson", email = "dave@m6r.ai"},

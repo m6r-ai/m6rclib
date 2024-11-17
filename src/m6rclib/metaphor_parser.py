@@ -317,7 +317,7 @@ class MetaphorParser:
 
                 action_node.attach_child(self._parse_text(token))
             elif token.type == TokenType.ACTION:
-                action_node.attach_child(self._parse_context(token))
+                action_node.attach_child(self._parse_action(token))
                 seen_token_type = TokenType.ACTION
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return action_node
@@ -393,7 +393,7 @@ class MetaphorParser:
 
                 role_node.attach_child(self._parse_text(token))
             elif token.type == TokenType.ROLE:
-                role_node.attach_child(self._parse_context(token))
+                role_node.attach_child(self._parse_role(token))
                 seen_token_type = TokenType.ROLE
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return role_node
