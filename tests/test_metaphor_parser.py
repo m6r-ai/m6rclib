@@ -175,7 +175,42 @@ def test_action_missing_description_and_indent(tmp_path):
     assert "Expected description or indent for 'Action' block" in str(exc_info.value.errors[0].message)
 
 
-def test_duplicate_action_sections(parser, tmp_path):
+def test_action_inner_unexpected(tmp_path):
+    """Test handling of unexpected tokens in Action blocks"""
+    p = tmp_path / "action_bad_token.m6r"
+    p.write_text(
+        "Action: TestAction\n" \
+        "    First text\n" \
+        "    Role: Invalid\n" \
+        "        This shouldn't be here\n"
+    )
+
+    parser = MetaphorParser()
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse_file(str(p), [])
+
+    assert "Unexpected token: Role: in 'Action' block" in str(exc_info.value.errors[0].message)
+
+
+def test_action_late_text(tmp_path):
+    """Test handling of text after inner Action in Action blocks"""
+    p = tmp_path / "action_late_text.m6r"
+    p.write_text(
+        "Action: TestAction\n" \
+        "    First text\n" \
+        "    Action: Inner\n" \
+        "        Inner action\n" \
+        "    Late text is wrong here\n"
+    )
+
+    parser = MetaphorParser()
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse_file(str(p), [])
+
+    assert "Text must come first in an 'Action' block" in str(exc_info.value.errors[0].message)
+
+
+def test_action_duplicate_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
     p.write_text(
@@ -256,7 +291,7 @@ def test_context_late_text(tmp_path):
     assert "Text must come first in a 'Context' block" in str(exc_info.value.errors[0].message)
 
 
-def test_duplicate_context_sections(parser, tmp_path):
+def test_context_duplicate_sections(parser, tmp_path):
     """Test handling of duplicate sections"""
     p = tmp_path / "duplicate.m6r"
     p.write_text(
@@ -270,22 +305,6 @@ def test_duplicate_context_sections(parser, tmp_path):
         parser.parse_file(str(p), [])
 
     assert "'Context' already defined" in str(exc_info.value.errors[0].message)
-
-
-def test_duplicate_role_sections(parser, tmp_path):
-    """Test handling of duplicate sections"""
-    p = tmp_path / "duplicate.m6r"
-    p.write_text(
-        "Role: Test1\n" \
-        "    Description\n" \
-        "Role: Test2\n" \
-        "    Description\n"
-    )
-
-    with pytest.raises(MetaphorParserError) as exc_info:
-        parser.parse_file(str(p), [])
-
-    assert "'Role' already defined" in str(exc_info.value.errors[0].message)
 
 
 def test_role_unexpected_token(tmp_path):
@@ -333,6 +352,57 @@ def test_role_missing_description_and_indent(tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Expected description or indent for 'Role' block" in str(exc_info.value.errors[0].message)
+
+
+def test_role_inner_unexpected(tmp_path):
+    """Test handling of unexpected tokens in Role blocks"""
+    p = tmp_path / "role_bad_token.m6r"
+    p.write_text(
+        "Role: TestRole\n" \
+        "    First text\n" \
+        "    Action: Invalid\n" \
+        "        This shouldn't be here\n"
+    )
+
+    parser = MetaphorParser()
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse_file(str(p), [])
+
+    assert "Unexpected token: Action: in 'Role' block" in str(exc_info.value.errors[0].message)
+
+
+def test_role_late_text(tmp_path):
+    """Test handling of text after inner Role in Role blocks"""
+    p = tmp_path / "role_late_text.m6r"
+    p.write_text(
+        "Role: TestRole\n" \
+        "    First text\n" \
+        "    Role: Inner\n" \
+        "        Inner role\n" \
+        "    Late text is wrong here\n"
+    )
+
+    parser = MetaphorParser()
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse_file(str(p), [])
+
+    assert "Text must come first in a 'Role' block" in str(exc_info.value.errors[0].message)
+
+
+def test_role_duplicate_sections(parser, tmp_path):
+    """Test handling of duplicate sections"""
+    p = tmp_path / "duplicate.m6r"
+    p.write_text(
+        "Role: Test1\n" \
+        "    Description\n" \
+        "Role: Test2\n" \
+        "    Description\n"
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse_file(str(p), [])
+
+    assert "'Role' already defined" in str(exc_info.value.errors[0].message)
 
 
 def test_include_rel_path(parser, tmp_path):

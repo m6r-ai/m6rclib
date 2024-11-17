@@ -1,6 +1,6 @@
 """An embedded compiler for the Metaphor language."""
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # Export main classes so users can import directly from m6rclib
 from .metaphor_ast_node import MetaphorASTNode, MetaphorASTNodeType

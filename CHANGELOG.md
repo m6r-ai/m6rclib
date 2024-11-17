@@ -1,5 +1,15 @@
 # Changelog for m6rclib
 
+## v0.4.0 (2024-11-17)
+
+Update the "Role:" and "Action:" keywords to allow both to included nested keywords of the same type.
+
+## v0.3.0 (2024-11-14)
+
+Add standard prompt and error formatter functions.
+
+Improve the preamble prompt.
+
 ## v0.2.0 (2024-11-13)
 
 This release adds `__str__` and `__repr__` methods to the `MetaphorASTNode` class to simplify debugging and printing.

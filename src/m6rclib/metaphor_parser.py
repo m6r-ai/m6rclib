@@ -110,15 +110,17 @@ class MetaphorParser:
             "indentation.  \"text line 2\" is indented by 2 spaces relative to the opening 3 backticks",
             " \"text line 3\" is indented by 1 space relative to its opening 3 backticks.",
             "",
-            "If a \"Role:\" block exists then this is the role you should fulfil.",
+            "If \"Role:\" blocks exists then these contain details about the role you should fulfil.  This",
+            "section may also describe specific skills you have, knowledge you should apply, and the",
+            "approach you take to apply these."
             "",
             "\"Context:\" blocks provide context necessary to understand what you will be asked to do.",
             "",
-            "An \"Action:\" block describes the task I would like you to do.",
+            "\"Action:\" blocks describes the task, or tasks, I would like you to do.",
             "",
-            "When you process the actions please carefully ensure you do all of them accurately.  These",
-            "need to fulfil all the details described in the \"Context:\".  Ensure you complete all the",
-            "elements and do not include any placeholders.",
+            "When you process the actions please carefully ensure you do all of them accurately and",
+            "complete all the elements requested.  Unless otherwise instructed, do not include any",
+            "placeholders in your responses.",
             "",
             "BEGIN DESCRIPTION IN METAPHOR:"
         ]
@@ -291,6 +293,8 @@ class MetaphorParser:
         """Parse an action block and construct its AST node."""
         label_name = ""
 
+        seen_token_type = TokenType.NONE
+
         init_token = self.get_next_token()
         if init_token.type == TokenType.KEYWORD_TEXT:
             label_name = init_token.value
@@ -308,7 +312,13 @@ class MetaphorParser:
         while True:
             token = self.get_next_token()
             if token.type == TokenType.TEXT:
+                if seen_token_type != TokenType.NONE:
+                    self._record_syntax_error(token, "Text must come first in an 'Action' block")
+
                 action_node.attach_child(self._parse_text(token))
+            elif token.type == TokenType.ACTION:
+                action_node.attach_child(self._parse_context(token))
+                seen_token_type = TokenType.ACTION
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return action_node
             else:
@@ -350,11 +360,16 @@ class MetaphorParser:
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return context_node
             else:
-                self._record_syntax_error(token, f"Unexpected token: {token.value} in 'Context' block")
+                self._record_syntax_error(
+                    token,
+                    f"Unexpected token: {token.value} in 'Context' block"
+                )
 
     def _parse_role(self, token):
         """Parse a Role block."""
         label_name = ""
+
+        seen_token_type = TokenType.NONE
 
         init_token = self.get_next_token()
         if init_token.type == TokenType.KEYWORD_TEXT:
@@ -373,7 +388,13 @@ class MetaphorParser:
         while True:
             token = self.get_next_token()
             if token.type == TokenType.TEXT:
+                if seen_token_type != TokenType.NONE:
+                    self._record_syntax_error(token, "Text must come first in a 'Role' block")
+
                 role_node.attach_child(self._parse_text(token))
+            elif token.type == TokenType.ROLE:
+                role_node.attach_child(self._parse_context(token))
+                seen_token_type = TokenType.ROLE
             elif token.type == TokenType.OUTDENT or token.type == TokenType.END_OF_FILE:
                 return role_node
             else:
