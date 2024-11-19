@@ -143,9 +143,6 @@ class MetaphorLexer:
         Args:
             line: The line to check
             column: The current column number
-
-        Returns:
-            True if a tab was handled, False otherwise
         """
         self.tokens.append(
             Token(
