@@ -54,7 +54,3 @@ class Token:
     filename: str
     line: int
     column: int
-
-    def __str__(self) -> str:
-        return f"Token(type=TokenType.{self.type.name}, value='{self.value}', " \
-               f"line={self.line}, column={self.column})"
