@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "m6rclib"
-version = "0.4.1"
+version = "0.5.0"
 description = "An embedded parser and LLM AI prompt compiler for the Metaphor language"
 readme = "README.md"
 requires-python = ">=3.8"

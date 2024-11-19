@@ -1,5 +1,11 @@
 # Changelog for m6rclib
 
+## v0.5.0 (2024-11-19)
+
+Made the `MetaphorParserSyntaxError` class public.
+
+Reimplemented all unit tests so they only operate via the public API.
+
 ## v0.4.1 (2024-11-17)
 
 Resolve problem in parsing nested "Role:" and "Action:" blocks.
