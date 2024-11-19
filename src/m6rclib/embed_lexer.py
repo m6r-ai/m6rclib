@@ -116,4 +116,3 @@ class EmbedLexer:
             self.current_line += 1
 
         self.tokens.append(Token(TokenType.TEXT, "```", "", self.filename, self.current_line, 1))
-        self.tokens.append(Token(TokenType.END_OF_FILE, "", "", self.filename, self.current_line, 1))
