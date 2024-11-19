@@ -8,12 +8,36 @@ from m6rclib import (
     MetaphorASTNodeType,
     MetaphorParser,
     MetaphorParserError,
+    format_ast,
 )
 
 
 @pytest.fixture
 def parser():
+    """Provide a parser instance for tests."""
     return MetaphorParser()
+
+
+@pytest.fixture
+def setup_files(tmp_path):
+    """Create sample files for testing."""
+    # Python file
+    py_file = tmp_path / "test.py"
+    py_file.write_text("def hello():\n    print('Hello, World!')")
+
+    # Text file
+    txt_file = tmp_path / "test.txt"
+    txt_file.write_text("Plain text content")
+
+    # JavaScript file
+    js_file = tmp_path / "test.js"
+    js_file.write_text("function hello() { console.log('Hello'); }")
+
+    # Multiple extension file
+    multi_file = tmp_path / "test.spec.js"
+    multi_file.write_text("describe('test', () => { it('works', () => {}); });")
+
+    return tmp_path
 
 
 @pytest.fixture
@@ -84,6 +108,450 @@ def test_invalid_structure(parser, tmp_path):
         parser.parse_file(str(p), [])
 
     assert "Unexpected token" in str(exc_info.value.errors[0].message)
+
+
+def test_valid_keyword_parsing(parser):
+    """Test that valid keywords are parsed correctly."""
+    input_text = (
+        "Role: Test\n"
+        "    Description\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    roles = result.get_children_of_type(MetaphorASTNodeType.ROLE)
+    assert len(roles) == 1
+    assert roles[0].value == "Test"
+
+
+def test_invalid_keyword_error(parser):
+    """Test that invalid keywords raise appropriate error."""
+    input_text = "InvalidKeyword: Test\n    Text\n"
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "Unexpected token" in error.message
+
+
+def test_error_location_tracking(parser):
+    """Test that error location is correctly tracked."""
+    input_text = (
+        "Role: Test\n"
+        "    Description\n"
+        "  BadIndent: Wrong\n"
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert error.line == 3
+    assert "test.txt" == error.filename
+
+
+def test_keyword_empty_value(parser):
+    """Test parsing keyword with no value."""
+    input_text = (
+        "Role:\n"
+        "    Description\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    assert role.value == ""
+
+
+def test_keyword_whitespace_value(parser):
+    """Test parsing keyword with whitespace value."""
+    input_text = (
+        "Role:     \n"
+        "    Description\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    assert role.value == ""
+
+
+def test_duplicate_role_error(parser):
+    """Test that duplicate Role keywords raise error."""
+    input_text = (
+        "Role: First\n"
+        "    Description\n"
+        "Role: Second\n"
+        "    Text\n"
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "'Role' already defined" in error.message
+
+
+def test_duplicate_context_error(parser):
+    """Test that duplicate Context keywords raise error."""
+    input_text = (
+        "Context: First\n"
+        "    Description\n"
+        "Context: Second\n"
+        "    Text\n"
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "'Context' already defined" in error.message
+
+
+def test_duplicate_action_error(parser):
+    """Test that duplicate Action keywords raise error."""
+    input_text = (
+        "Action: First\n"
+        "    Description\n"
+        "Action: Second\n"
+        "    Text\n"
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "'Action' already defined" in error.message
+
+
+def test_keyword_text_preservation(parser):
+    """Test that text following keywords is preserved."""
+    input_text = (
+        "Role: Test Role Description\n"
+        "    Text\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    assert role.value == "Test Role Description"
+
+
+def test_text_content_preservation(parser):
+    """Test that indented text content is preserved."""
+    input_text = (
+        "Role: Test\n"
+        "    First line\n"
+        "    Second line\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    texts = role.get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(texts) == 2
+    assert texts[0].value == "First line"
+    assert texts[1].value == "Second line"
+
+
+def test_empty_input(parser):
+    """Test handling of empty input."""
+    result = parser.parse("", "test.txt", [])
+
+    # Preamble will still be generated
+    assert len(result.children) > 0
+
+    # But no user content
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 0
+    assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 0
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ACTION)) == 0
+
+
+def test_indentation_handling(parser):
+    """Test handling of indentation through parser."""
+    input_text = (
+        "Context: Test\n"
+        "    Description\n"
+        "    Context: Nested\n"
+        "        Nested content\n"
+    )
+    result = parser.parse(input_text, "test.txt", [])
+    context_node = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)[0]
+    nested_contexts = context_node.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+    assert len(nested_contexts) == 1
+    assert len(nested_contexts[0].get_children_of_type(MetaphorASTNodeType.TEXT)) == 1
+
+
+def test_incorrect_indentation(parser):
+    """Test handling of incorrect indentation."""
+    input_text = (
+        "Role: Test\n"
+        "   Bad indent\n"  # 3 spaces instead of 4
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "indent" in error.message.lower()
+
+
+def test_keyword_handling(parser):
+    """Test keyword handling through parser."""
+    input_text = (
+        "Role: Test\n"
+        "    Description\n"
+        "Context: Setup\n"
+        "    Details\n"
+        "Action: Do\n"
+        "    Steps\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ACTION)) == 1
+
+
+def test_fenced_code_blocks(parser):
+    """Test handling of fenced code blocks."""
+    input_text = (
+        "Context: Test\n"
+        "    Before code\n"
+        "    ```python\n"
+        "    def hello():\n"
+        "        print('Hello')\n"
+        "    ```\n"
+        "    After code\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    context = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)[0]
+    text_nodes = context.get_children_of_type(MetaphorASTNodeType.TEXT)
+
+    # Convert text nodes to list of values for easier testing
+    text_values = [node.value for node in text_nodes]
+    assert "Before code" in text_values
+    assert "```python" in text_values
+    assert "def hello():" in text_values
+    assert "    print('Hello')" in text_values
+    assert "```" in text_values
+    assert "After code" in text_values
+
+
+def test_empty_lines(parser):
+    """Test handling of empty lines."""
+    input_text = (
+        "Role: Test\n"
+        "\n"
+        "    Description\n"
+        "\n"
+        "    More text\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    text_nodes = role.get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(text_nodes) == 2
+    assert text_nodes[0].value == "Description"
+    assert text_nodes[1].value == "More text"
+
+
+def test_tab_characters(parser):
+    """Test handling of tab characters in input."""
+    input_text = (
+        "Role: Test\n"
+        "    Description\n"  # Proper indentation after Role
+        "\tTabbed line\n"  # Line starting with tab
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "[Tab]" in error.message
+
+
+def test_comment_lines(parser):
+    """Test handling of comment lines."""
+    input_text = (
+        "Role: Test\n"
+        "    # This is a comment\n"
+        "    Actual content\n"
+        "# Another comment\n"
+        "    More content\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role_node = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    text_nodes = role_node.get_children_of_type(MetaphorASTNodeType.TEXT)
+
+    # Comments should be ignored
+    assert len(text_nodes) == 2
+    assert text_nodes[0].value == "Actual content"
+    assert text_nodes[1].value == "More content"
+
+
+def test_mixed_spaces_and_tab(parser):
+    """Test handling of mixed tabs and spaces."""
+    input_text = (
+        "Role: Test\n"
+        "    First line\n"  # Proper indentation after Role
+        "    \t\n"  # Tab preceded by spaces
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "[Tab]" in error.message
+
+
+def test_tab_in_content_block(parser):
+    """Test handling of tabs appearing within a content block."""
+    input_text = (
+        "Role: Test\n"
+        "    Normal line\n"
+        "    Line with\ttab\n"  # Tab in middle of content
+        "    Another normal line\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role_node = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    text_nodes = role_node.get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(text_nodes) == 3
+    assert "\t" in text_nodes[1].value  # Tab preserved in content
+
+
+def test_commented_keywords(parser):
+    """Test that commented keywords are ignored."""
+    input_text = (
+        "Role: Test\n"
+        "    First line\n"
+        "# Role: Commented\n"
+        "    Second line\n"
+        "    # Context: Still commented\n"
+        "    Third line\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    # Should only have one Role node since others are commented
+    roles = result.get_children_of_type(MetaphorASTNodeType.ROLE)
+    assert len(roles) == 1
+
+    # Should have three text lines
+    text_nodes = roles[0].get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(text_nodes) == 3
+    assert text_nodes[0].value == "First line"
+    assert text_nodes[1].value == "Second line"
+    assert text_nodes[2].value == "Third line"
+
+
+def test_python_embedding(parser, setup_files):
+    """Test embedding of Python files with syntax highlighting."""
+    input_text = (
+        "Context: Code\n"
+        "    Some context\n"
+        f"    Embed: {setup_files}/test.py\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    context = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)[0]
+    text_nodes = context.get_children_of_type(MetaphorASTNodeType.TEXT)
+
+    # Find the code block
+    code_text = "\n".join(node.value for node in text_nodes)
+    assert "```python" in code_text
+    assert "def hello():" in code_text
+    assert "print('Hello, World!')" in code_text
+
+
+def test_multiple_file_embedding(parser, setup_files):
+    """Test embedding multiple files using wildcards."""
+    input_text = (
+        "Context: JavaScript\n"
+        f"    Embed: {setup_files}/*.js\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    formatted = format_ast(result)
+
+    assert "```javascript" in formatted
+    assert "function hello()" in formatted
+    assert "describe('test'" in formatted
+
+
+def test_missing_file_handling(parser, setup_files):
+    """Test handling of missing files."""
+    input_text = (
+        "Context: Missing\n"
+        f"    Embed: {setup_files}/nonexistent.txt\n"
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+    error = exc_info.value.errors[0]
+    assert "does not match any files" in error.message
+
+
+def test_language_detection(parser, setup_files):
+    """Test correct language detection for different file types."""
+    for filename, expected_lang in [
+        ("test.py", "python"),
+        ("test.txt", "plaintext"),
+        ("test.js", "javascript"),
+        ("test.spec.js", "javascript")
+    ]:
+        input_text = (
+            "Context: Test\n"
+            f"    Embed: {setup_files}/{filename}\n"
+        )
+
+        result = parser.parse(input_text, "test.txt", [])
+        formatted = format_ast(result)
+        assert f"```{expected_lang}" in formatted
+
+
+def test_recursive_embedding(tmp_path):
+    """Test recursive file embedding with **/ pattern."""
+    # Create nested directory structure
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    subsubdir = subdir / "deeper"
+    subsubdir.mkdir()
+
+    # Create files at different levels
+    (tmp_path / "root.txt").write_text("Root content")
+    (subdir / "level1.txt").write_text("Level 1 content")
+    (subsubdir / "level2.txt").write_text("Level 2 content")
+
+    parser = MetaphorParser()
+    input_text = (
+        "Context: Files\n"
+        f"    Embed: {tmp_path}/**/*.txt\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    formatted = format_ast(result)
+
+    assert "Root content" in formatted
+    assert "Level 1 content" in formatted
+    assert "Level 2 content" in formatted
+
+
+def test_file_without_extension(parser, tmp_path):
+    """Test embedding file with no extension."""
+    # Create a file without extension
+    no_ext_file = tmp_path / "noextension"
+    no_ext_file.write_text("Content without extension")
+
+    input_text = (
+        "Context: Test\n"
+        f"    Embed: {no_ext_file}\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    formatted = format_ast(result)
+
+    # Should use plaintext for files without extension
+    assert "```plaintext" in formatted
+    assert "Content without extension" in formatted
 
 
 def test_missing_indent_after_keyword(parser, tmp_path):
