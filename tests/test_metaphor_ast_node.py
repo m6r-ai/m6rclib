@@ -1,6 +1,10 @@
 import pytest
 
-from m6rclib.metaphor_ast_node import MetaphorASTNode, MetaphorASTNodeType
+from m6rclib import (
+    MetaphorASTNode,
+    MetaphorASTNodeType,
+)
+
 
 @pytest.fixture
 def sample_node():

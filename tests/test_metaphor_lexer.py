@@ -1,278 +1,208 @@
+"""Tests for lexer-related behavior through public API."""
+
 import pytest
 
-from m6rclib.metaphor_lexer import MetaphorLexer
-from m6rclib.metaphor_token import Token, TokenType
+from m6rclib import (
+    MetaphorASTNodeType,
+    MetaphorParser,
+    MetaphorParserError,
+)
+
 
 @pytest.fixture
-def empty_lexer():
-    return MetaphorLexer("", "test.txt")
+def parser():
+    """Provide a parser instance for tests."""
+    return MetaphorParser()
 
 
-@pytest.fixture
-def basic_lexer():
-    input_text = \
-        "Role: TestRole\n" \
-        "    This is a test role description\n" \
-        "Context: TestContext\n" \
-        "    This is a test context\n" \
-        "    Context: Nested\n" \
-        "        This is nested\n" \
-        "Action: TestAction\n" \
-        "    Do something\n"
-    return MetaphorLexer(input_text, "test.txt")
+def test_empty_input(parser):
+    """Test handling of empty input."""
+    result = parser.parse("", "test.txt", [])
+
+    # Preamble will still be generated
+    assert len(result.children) > 0
+
+    # But no user content
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 0
+    assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 0
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ACTION)) == 0
 
 
-def test_lexer_initialization(empty_lexer):
-    """Test basic lexer initialization"""
-    assert empty_lexer.filename == "test.txt"
-    assert empty_lexer.in_text_block is False
-    assert empty_lexer.indent_column == 1
-    assert empty_lexer.current_line == 1
+def test_indentation_handling(parser):
+    """Test handling of indentation through parser."""
+    input_text = (
+        "Context: Test\n"
+        "    Description\n"
+        "    Context: Nested\n"
+        "        Nested content\n"
+    )
+    result = parser.parse(input_text, "test.txt", [])
+    context_node = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)[0]
+    nested_contexts = context_node.get_children_of_type(MetaphorASTNodeType.CONTEXT)
+    assert len(nested_contexts) == 1
+    assert len(nested_contexts[0].get_children_of_type(MetaphorASTNodeType.TEXT)) == 1
 
 
-def test_empty_input_tokenization(empty_lexer):
-    """Test tokenization of empty input"""
-    token = empty_lexer.get_next_token()
-    assert token.type == TokenType.END_OF_FILE
+def test_incorrect_indentation(parser):
+    """Test handling of incorrect indentation."""
+    input_text = (
+        "Role: Test\n"
+        "   Bad indent\n"  # 3 spaces instead of 4
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "indent" in error.message.lower()
 
 
-def test_comment_handling():
-    """Test handling of comment lines"""
-    lexer = MetaphorLexer("# This is a comment\nRole: Test", "test.txt")
-    token = lexer.get_next_token()
-    assert token.type == TokenType.ROLE
-    assert token.value == "Role:"
+def test_keyword_handling(parser):
+    """Test keyword handling through parser."""
+    input_text = (
+        "Role: Test\n"
+        "    Description\n"
+        "Context: Setup\n"
+        "    Details\n"
+        "Action: Do\n"
+        "    Steps\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ROLE)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.CONTEXT)) == 1
+    assert len(result.get_children_of_type(MetaphorASTNodeType.ACTION)) == 1
 
 
-def test_tab_character_handling():
-    """Test handling of tab characters"""
-    lexer = MetaphorLexer("\tRole: Test", "test.txt")
-    token = lexer.get_next_token()
-    assert token.type == TokenType.TAB
-    token = lexer.get_next_token()
-    assert token.type == TokenType.ROLE
+def test_fenced_code_blocks(parser):
+    """Test handling of fenced code blocks."""
+    input_text = (
+        "Context: Test\n"
+        "    Before code\n"
+        "    ```python\n"
+        "    def hello():\n"
+        "        print('Hello')\n"
+        "    ```\n"
+        "    After code\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    context = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)[0]
+    text_nodes = context.get_children_of_type(MetaphorASTNodeType.TEXT)
+
+    # Convert text nodes to list of values for easier testing
+    text_values = [node.value for node in text_nodes]
+    assert "Before code" in text_values
+    assert "```python" in text_values
+    assert "def hello():" in text_values
+    assert "    print('Hello')" in text_values
+    assert "```" in text_values
+    assert "After code" in text_values
 
 
-def test_keyword_detection(basic_lexer):
-    """Test detection of keywords"""
-    tokens = []
-    while True:
-        token = basic_lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
+def test_empty_lines(parser):
+    """Test handling of empty lines."""
+    input_text = (
+        "Role: Test\n"
+        "\n"
+        "    Description\n"
+        "\n"
+        "    More text\n"
+    )
 
-    keyword_tokens = [t for t in tokens if t.type in (TokenType.ROLE, TokenType.CONTEXT, TokenType.ACTION)]
-    assert len(keyword_tokens) == 4  # 1 Role, 2 Context (one nested), 1 Action
-    assert keyword_tokens[0].type == TokenType.ROLE
-    assert keyword_tokens[1].type == TokenType.CONTEXT
-    assert keyword_tokens[2].type == TokenType.CONTEXT  # Nested context
-    assert keyword_tokens[3].type == TokenType.ACTION
-
-
-def test_indentation_handling():
-    """Test handling of indentation"""
-    # All at same indentation level
-    input_text = \
-        "Role: Test\n" \
-        "    First block\n" \
-        "    Still first block\n" \
-        "    Back at first\n"
-
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
-
-    indent_tokens = [t for t in tokens if t.type == TokenType.INDENT]
-    outdent_tokens = [t for t in tokens if t.type == TokenType.OUTDENT]
-
-    # We expect one indentation level with multiple lines at that level
-    assert len(indent_tokens) == 1
-    assert indent_tokens[0].line == 2  # First indent
-    assert len(outdent_tokens) == 1    # One outdent at the end
-
-    # Check that all text tokens maintain the same indentation
-    text_tokens = [t for t in tokens if t.type == TokenType.TEXT]
-    assert all(t.column == text_tokens[0].column for t in text_tokens)
-
-    # Test nested Context blocks which should show multiple indent levels
-    nested_input = \
-        "Context: Outer\n" \
-        "    First level\n" \
-        "Context: Inner\n" \
-        "    Second level\n"
-
-    lexer = MetaphorLexer(nested_input, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
-
-    # For Context blocks, each new Context: creates its own indent level
-    indent_tokens = [t for t in tokens if t.type == TokenType.INDENT]
-    assert len(indent_tokens) == 2  # One for each Context block
+    result = parser.parse(input_text, "test.txt", [])
+    role = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    text_nodes = role.get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(text_nodes) == 2
+    assert text_nodes[0].value == "Description"
+    assert text_nodes[1].value == "More text"
 
 
-def test_bad_indentation():
-    """Test handling of incorrect indentation"""
-    # 3 spaces instead of 4
-    input_text = \
-        "Role: Test\n" \
-        "   Bad indent\n"
+def test_tab_characters(parser):
+    """Test handling of tab characters in input."""
+    input_text = (
+        "Role: Test\n"
+        "    Description\n"  # Proper indentation after Role
+        "\tTabbed line\n"  # Line starting with tab
+    )
 
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
 
-    bad_indent_tokens = [t for t in tokens if t.type == TokenType.BAD_INDENT]
-    assert len(bad_indent_tokens) == 1
-    assert bad_indent_tokens[0].column == 4
+    error = exc_info.value.errors[0]
+    assert "[Tab]" in error.message
 
 
-def test_bad_outdentation():
-    """Test handling of incorrect outdentation"""
-    # 5 spaces instead of 4 or 8
-    input_text = \
-        "Role: Test\n" \
-        "        Double indented\n" \
-        "     Bad outdent\n"
+def test_comment_lines(parser):
+    """Test handling of comment lines."""
+    input_text = (
+        "Role: Test\n"
+        "    # This is a comment\n"
+        "    Actual content\n"
+        "# Another comment\n"
+        "    More content\n"
+    )
 
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
+    result = parser.parse(input_text, "test.txt", [])
+    role_node = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    text_nodes = role_node.get_children_of_type(MetaphorASTNodeType.TEXT)
 
-    bad_outdent_tokens = [t for t in tokens if t.type == TokenType.BAD_OUTDENT]
-    assert len(bad_outdent_tokens) == 1
-    assert bad_outdent_tokens[0].column == 6
-
-
-def test_keyword_text_handling():
-    """Test handling of text after keywords"""
-    input_text = "Role: Test Description"
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
-
-    assert tokens[0].type == TokenType.ROLE
-    assert tokens[1].type == TokenType.KEYWORD_TEXT
-    assert tokens[1].value == "Test Description"
+    # Comments should be ignored
+    assert len(text_nodes) == 2
+    assert text_nodes[0].value == "Actual content"
+    assert text_nodes[1].value == "More content"
 
 
-def test_text_block_continuation():
-    """Test handling of continued text blocks"""
-    input_text = \
-        "Role: Test\n" \
-        "    First line\n" \
-        "    Second line\n" \
+def test_mixed_spaces_and_tab(parser):
+    """Test handling of mixed tabs and spaces."""
+    input_text = (
+        "Role: Test\n"
+        "    First line\n"  # Proper indentation after Role
+        "    \t\n"  # Tab preceded by spaces
+    )
+
+    with pytest.raises(MetaphorParserError) as exc_info:
+        parser.parse(input_text, "test.txt", [])
+
+    error = exc_info.value.errors[0]
+    assert "[Tab]" in error.message
+
+
+def test_tab_in_content_block(parser):
+    """Test handling of tabs appearing within a content block."""
+    input_text = (
+        "Role: Test\n"
+        "    Normal line\n"
+        "    Line with\ttab\n"  # Tab in middle of content
+        "    Another normal line\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    role_node = result.get_children_of_type(MetaphorASTNodeType.ROLE)[0]
+    text_nodes = role_node.get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(text_nodes) == 3
+    assert "\t" in text_nodes[1].value  # Tab preserved in content
+
+
+def test_commented_keywords(parser):
+    """Test that commented keywords are ignored."""
+    input_text = (
+        "Role: Test\n"
+        "    First line\n"
+        "# Role: Commented\n"
+        "    Second line\n"
+        "    # Context: Still commented\n"
         "    Third line\n"
+    )
 
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
+    result = parser.parse(input_text, "test.txt", [])
+    # Should only have one Role node since others are commented
+    roles = result.get_children_of_type(MetaphorASTNodeType.ROLE)
+    assert len(roles) == 1
 
-    text_tokens = [t for t in tokens if t.type == TokenType.TEXT]
-    assert len(text_tokens) == 3
-    assert all(t.column == text_tokens[0].column for t in text_tokens)
-
-
-def test_empty_lines():
-    """Test handling of empty lines"""
-    input_text = \
-        "Role: Test\n" \
-        "\n" \
-        "    Text after empty line\n"
-
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
-
-    text_tokens = [t for t in tokens if t.type == TokenType.TEXT]
-    assert len(text_tokens) == 1
-    assert text_tokens[0].value == "Text after empty line"
-
-
-def test_mixed_content():
-    """Test handling of mixed content types"""
-    input_text = \
-        "Role: Test\n" \
-        "    Description\n" \
-        "Context: First\n" \
-        "    Some text\n" \
-        "    Context: Nested\n" \
-        "        \t\n" \
-        "        Nested text\n" \
-        "    Back to first\n" \
-        "Action: Do\n" \
-        "    Steps to take\n"
-
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
-
-    # Verify token sequence
-    token_types = [t.type for t in tokens if t.type not in (TokenType.INDENT, TokenType.OUTDENT)]
-    assert TokenType.ROLE in token_types
-    assert TokenType.CONTEXT in token_types
-    assert TokenType.ACTION in token_types
-    assert token_types.count(TokenType.TEXT) >= 4  # At least 4 text blocks
-
-
-def test_fenced_code():
-    """Test handling of fenced code"""
-    input_text = \
-        "Role: Test\n" \
-        "    Description\n" \
-        "Context: First\n" \
-        "    Some text\n" \
-        "    ```metaphor\n" \
-        "    Context: Nested\n" \
-        "        Nested text\n" \
-        "    ```\n" \
-        "    Back to first\n" \
-        "Action: Do\n" \
-        "    Steps to take\n"
-
-    lexer = MetaphorLexer(input_text, "test.txt")
-    tokens = []
-    while True:
-        token = lexer.get_next_token()
-        tokens.append(token)
-        if token.type == TokenType.END_OF_FILE:
-            break
-
-    # Verify token sequence
-    token_types = [t.type for t in tokens if t.type not in (TokenType.INDENT, TokenType.OUTDENT)]
-    assert TokenType.ROLE in token_types
-    assert TokenType.CONTEXT in token_types
-    assert TokenType.ACTION in token_types
-    assert token_types.count(TokenType.TEXT) == 8
+    # Should have three text lines
+    text_nodes = roles[0].get_children_of_type(MetaphorASTNodeType.TEXT)
+    assert len(text_nodes) == 3
+    assert text_nodes[0].value == "First line"
+    assert text_nodes[1].value == "Second line"
+    assert text_nodes[2].value == "Third line"

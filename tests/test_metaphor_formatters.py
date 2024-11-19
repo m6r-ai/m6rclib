@@ -1,9 +1,14 @@
 """Unit tests for the Metaphor formatter functions."""
 
 import pytest
-from m6rclib.metaphor_ast_node import MetaphorASTNode, MetaphorASTNodeType
-from m6rclib.metaphor_parser import MetaphorParserSyntaxError
-from m6rclib.metaphor_formatters import format_ast, format_errors
+
+from m6rclib import (
+    MetaphorASTNode,
+    MetaphorASTNodeType,
+    MetaphorParserSyntaxError,
+    format_ast,
+    format_errors
+)
 
 
 def test_format_ast_empty_root():

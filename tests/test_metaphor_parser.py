@@ -4,13 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from m6rclib.metaphor_parser import (
+from m6rclib import (
+    MetaphorASTNodeType,
     MetaphorParser,
     MetaphorParserError,
-    MetaphorParserSyntaxError,
-    MetaphorParserFileAlreadyUsedError
 )
-from m6rclib.metaphor_ast_node import MetaphorASTNodeType
+
 
 @pytest.fixture
 def parser():
