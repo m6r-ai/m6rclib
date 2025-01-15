@@ -105,7 +105,7 @@ class MetaphorParser:
             "    ```",
             "        ```plaintext",
             "         text line 3",
-            "        ```"
+            "        ```",
             "In this example, \"text line 1\" is not indented from the opening 3 backticks and thus has no",
             "indentation.  \"text line 2\" is indented by 2 spaces relative to the opening 3 backticks",
             " \"text line 3\" is indented by 1 space relative to its opening 3 backticks.",

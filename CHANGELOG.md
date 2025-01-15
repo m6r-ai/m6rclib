@@ -1,5 +1,9 @@
 # Changelog for m6rclib
 
+## v0.5.1 (2025-01-15)
+
+Fix a typo in the Metaphor preamble.
+
 ## v0.5.0 (2024-11-19)
 
 Made the `MetaphorParserSyntaxError` class public.
