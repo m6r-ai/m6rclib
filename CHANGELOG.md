@@ -1,5 +1,9 @@
 # Changelog for m6rclib
 
+## v0.6.0 (2025-01-22)
+
+Add an optional argument to the `parse` method to support a base path for "Embed:" blocks.
+
 ## v0.5.1 (2025-01-15)
 
 Fix a typo in the Metaphor preamble.

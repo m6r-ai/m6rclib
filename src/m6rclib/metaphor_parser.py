@@ -67,6 +67,7 @@ class MetaphorParser:
         self.lexers: List[Union[MetaphorLexer, EmbedLexer]] = []
         self.previously_seen_files: Set[str] = set()
         self.search_paths: List[str] = []
+        self.embed_path: str = None
         self.current_token: Optional[Token] = None
 
     def _insert_preamble_text(self, text: str) -> None:
@@ -128,7 +129,7 @@ class MetaphorParser:
         for text in preamble:
             self._insert_preamble_text(text)
 
-    def parse(self, input_text: str, filename: str, search_paths: List[str]) -> MetaphorASTNode:
+    def parse(self, input_text: str, filename: str, search_paths: List[str], embed_path: Optional[str]=None) -> MetaphorASTNode:
         """
         Parse an input string and construct the AST.
 
@@ -136,6 +137,7 @@ class MetaphorParser:
             input_text (str): The text to be parsed.
             filename (str): The name of the file being parsed.
             search_paths (List[str]): List of paths to search for included files.
+            embed_path: Path used to search for embedded files (uses CWD if None).
 
         Returns:
             List[Optional[MetaphorASTNode]]: A list containing the role, context, and action AST nodes.
@@ -145,6 +147,7 @@ class MetaphorParser:
             FileNotFoundError: If a required file cannot be found.
         """
         self.search_paths = search_paths
+        self.embed_path = embed_path if embed_path else os.getcwd()
 
         try:
             self.lexers.append(MetaphorLexer(input_text, filename))
@@ -197,13 +200,14 @@ class MetaphorParser:
             ))
             raise(MetaphorParserError("parser error", self.parse_errors)) from e
 
-    def parse_file(self, filename: str, search_paths: List[str]) -> MetaphorASTNode:
+    def parse_file(self, filename: str, search_paths: List[str], embed_path: Optional[str]=None) -> MetaphorASTNode:
         """
         Parse a file and construct the AST.
 
         Args:
             filename (str): The path to the file to be parsed.
             search_paths (List[str]): List of paths to search for included files.
+            embed_path: Path used to search for embedded files (uses CWD if None).
 
         Returns:
             List[Optional[MetaphorASTNode]]: A list containing the role, context, and action AST nodes.
@@ -215,7 +219,7 @@ class MetaphorParser:
         try:
             self._check_file_not_loaded(filename)
             input_text = self._read_file(filename)
-            return self.parse(input_text, filename, search_paths)
+            return self.parse(input_text, filename, search_paths, embed_path)
         except FileNotFoundError as e:
             self.parse_errors.append(MetaphorParserSyntaxError(
                 f"{e}", "", 0, 0, ""
@@ -428,9 +432,10 @@ class MetaphorParser:
         if "**/" in match:
             recurse = True
 
-        files = glob.glob(match, recursive=recurse)
+        path = os.path.join(self.embed_path, match)
+        files = glob.glob(path, recursive=recurse)
         if not files:
-            self._record_syntax_error(token_next, f"{match} does not match any files for 'Embed'")
+            self._record_syntax_error(token_next, f"{match} does not match any files for 'Embed' in {self.embed_path}")
             return
 
         for file in files:

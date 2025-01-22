@@ -39,12 +39,13 @@ The main class for parsing Metaphor documents.
 
 #### Methods
 
-- `parse(input_text: str, filename: str, search_paths: List[str]) -> MetaphorASTNode`
+- `parse(input_text: str, filename: str, search_paths: List[str], embed_path: Optional[str]) -> MetaphorASTNode`
   - Parses a string containing Metaphor content
   - Args:
     - `input_text`: The Metaphor content to parse
     - `filename`: Name to use for error reporting
     - `search_paths`: List of paths to search for included files
+    - `embed_path`: Path used to search for embedded files
   - Returns: The root of the abstract syntax tree
   - Raises:
     - `MetaphorParserError`: If there are syntax errors
