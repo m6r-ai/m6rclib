@@ -317,6 +317,36 @@ def test_fenced_code_blocks(parser):
         "    ```python\n"
         "    def hello():\n"
         "        print('Hello')\n"
+        "\n"
+        "        print('World')\n"
+        "    ```\n"
+        "    After code\n"
+    )
+
+    result = parser.parse(input_text, "test.txt", [])
+    context = result.get_children_of_type(MetaphorASTNodeType.CONTEXT)[0]
+    text_nodes = context.get_children_of_type(MetaphorASTNodeType.TEXT)
+
+    # Convert text nodes to list of values for easier testing
+    text_values = [node.value for node in text_nodes]
+    assert "Before code" in text_values
+    assert "```python" in text_values
+    assert "def hello():" in text_values
+    assert "    print('Hello')" in text_values
+    assert "" in text_values
+    assert "    print('World')" in text_values
+    assert "```" in text_values
+    assert "After code" in text_values
+
+
+def test_fenced_code_blocks_with_blanks(parser):
+    """Test handling of fenced code blocks with blank lines."""
+    input_text = (
+        "Context: Test\n"
+        "    Before code\n"
+        "    ```python\n"
+        "    def hello():\n"
+        "        print('Hello')\n"
         "    ```\n"
         "    After code\n"
     )

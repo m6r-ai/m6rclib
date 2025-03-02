@@ -1,5 +1,9 @@
 # Changelog for m6rclib
 
+## v0.6.1 (2025-03-02)
+
+Preserve empty blank lines inside of triple-backtick-quoted code blocks.
+
 ## v0.6.0 (2025-01-22)
 
 Add an optional argument to the `parse` method to support a base path for "Embed:" blocks.

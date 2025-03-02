@@ -107,6 +107,9 @@ class MetaphorLexer:
         start_column = len(line) - len(stripped_line) + 1
 
         if not stripped_line:
+            if self.in_fenced_code:
+                self._handle_blank_line(start_column)
+
             return
 
         # Is this line a comment?
@@ -223,6 +226,18 @@ class MetaphorLexer:
             )
         )
         self.in_text_block = True
+
+    def _handle_blank_line(self, start_column: int) -> None:
+        self.tokens.append(
+            Token(
+                type=TokenType.TEXT,
+                value="",
+                input="",
+                filename=self.filename,
+                line=self.current_line,
+                column=start_column
+            )
+        )
 
     def _process_indentation(self, line: str, start_column: int) -> None:
         """
